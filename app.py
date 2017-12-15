@@ -56,6 +56,7 @@ def add_user():
     new_user = {
         '_id': data['username'],
         'email': data['email'],
+        'name': data['name'],
         'date': datetime.datetime.utcnow(),
         'salt': salt_value.decode('utf-8'),
         'hash': hash_value.decode('utf-8'),
@@ -67,6 +68,62 @@ def add_user():
     mongo.db.users.insert(new_user)
     # TODO: Check insert errors etc
     return jsonify({'result': 200})
+
+@app.route('/login', methods=['GET'])
+@auth.required
+def check_user():
+    return jsonify({'result': 200})
+
+@app.route('/profile', methods=['GET'])
+@auth.required
+def get_user_profile():
+    auth_header = request.authorization
+    calculate_user_achievements(auth_header.username)
+    user_info = mongo.db.users.find_one({'_id': auth_header.username})
+    return jsonify(user_info)
+
+@app.route('/achievement', methods=['POST'])
+@auth.required
+def add_achievement():
+    data = request.get_json()
+    new_achievement = {
+        '_id': data['name'],
+        'description': data['description'],
+        'operation': data['operation'],
+        'value': data['value']
+        # may need to hold image for achievement
+    }
+    mongo.db.achievements.insert(new_achievement)
+    return jsonify({'result': 200})
+
+def calculate_user_achievements(username):
+    user = mongo.db.users.find_one({'_id': username})
+    for achievement in mongo.db.achievements.find():
+        if user['operations'][achievement['operation']] >= achievement['value']:
+            mongo.db.users.find_one_and_update({'_id': username}, {'$addToSet': {'achievement': achievement['_id']}})
+
+@app.route('/achievement', methods=['GET'])
+@auth.required
+def get_all_achievements():
+    object = []
+    for achievement in mongo.db.achievements.find():
+        ret_achievement = achievement
+        ret_achievement['name'] = ret_achievement['_id'].replace('-', ' ').title() # search-king to Search King
+        ret_achievement.pop('operation', None)
+        ret_achievement.pop('value', None)
+        object.append(ret_achievement)
+
+    return jsonify(object)
+
+@app.route('/achievement/<achievement_id>')
+@auth.required
+def get_achievement(achievement_id):
+    ret_achievement = mongo.db.achievements.find_one({'_id': achievement_id})
+    ret_achievement['name'] = ret_achievement['_id'].replace('-', ' ').title()
+    ret_achievement.pop('operation', None)
+    ret_achievement.pop('value', None)
+    return jsonify(ret_achievement)
+
 
 @app.route('/station', methods=['POST'])
 def add_station():
@@ -99,12 +156,7 @@ def get_all_stations():
     return jsonify(object)
 
 @app.route('/station/search', methods=['GET'])
-@auth.required
 def search_station():
-    auth_header = request.authorization
-    mongo.db.users.find_one_and_update(
-        {'_id': auth_header.username}, {'$inc': {'operations.stationsearch': 1}}
-    )
     object = []
     name = request.args.get('name')
     regex = "^" + name
@@ -120,6 +172,13 @@ def search_station():
         }
         object.append(found_station)
 
+    # gamification part for search
+    auth_header = request.authorization
+    if auth_header.username is not None: # check if user logs in
+        if auth.check_credentials(auth_header.username, auth_header.password):
+            mongo.db.users.find_one_and_update(
+                {'_id': auth_header.username}, {'$inc': {'operations.stationsearch': 1}}
+            )
 
     return jsonify(object)
 
@@ -141,9 +200,6 @@ def get_nearby_location_stations():
         object.append(nearby_station)
 
     return jsonify(object)
-
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
