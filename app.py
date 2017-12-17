@@ -3,6 +3,7 @@ from flask_pymongo import PyMongo
 from flask_basicauth import BasicAuth
 import datetime
 import bcrypt
+import os
 # from decimal import Decimal
 
 # BasicAuth check_credentials method override
@@ -19,7 +20,7 @@ class EnpublicBasicAuth(BasicAuth):
         return False
 
 app = Flask(__name__)
-app.config['MONGO_DBNAME'] = 'enpublic'
+app.config['MONGO_URI'] = os.environ['ENPUBLIC_DB_SERVER']
 mongo = PyMongo(app)
 auth = EnpublicBasicAuth(app)
 #db = mongo.db
