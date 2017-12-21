@@ -81,6 +81,10 @@ def get_user_profile():
     auth_header = request.authorization
     calculate_user_achievements(auth_header.username)
     user_info = mongo.db.users.find_one({'_id': auth_header.username})
+    user_info.pop('date', None)
+    user_info.pop('salt', None)
+    user_info.pop('hash', None)
+    user_info.pop('operations', None)
     return jsonify(user_info)
 
 @app.route('/achievement', methods=['POST'])
@@ -175,11 +179,12 @@ def search_station():
 
     # gamification part for search
     auth_header = request.authorization
-    if auth_header.username is not None: # check if user logs in
-        if auth.check_credentials(auth_header.username, auth_header.password):
-            mongo.db.users.find_one_and_update(
-                {'_id': auth_header.username}, {'$inc': {'operations.stationsearch': 1}}
-            )
+    if auth_header is not None:
+        if auth_header.username is not None: # check if user logs in
+            if auth.check_credentials(auth_header.username, auth_header.password):
+                mongo.db.users.find_one_and_update(
+                    {'_id': auth_header.username}, {'$inc': {'operations.stationsearch': 1}}
+                )
 
     return jsonify(object)
 
@@ -201,6 +206,8 @@ def get_nearby_location_stations():
         object.append(nearby_station)
 
     return jsonify(object)
+
+# TODO: Station hakkında istatistik bilgileri tutulsun mu?
 
 if __name__ == '__main__':
     app.run(debug=True)
