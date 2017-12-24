@@ -1,6 +1,7 @@
 from flask import Flask, url_for, redirect, jsonify, request
 from flask_pymongo import PyMongo
 from flask_basicauth import BasicAuth
+from py2neo import Graph, Walkable
 import datetime
 import bcrypt
 import os
@@ -23,6 +24,7 @@ app = Flask(__name__)
 app.config['MONGO_URI'] = os.environ['ENPUBLIC_DB_SERVER']
 mongo = PyMongo(app)
 auth = EnpublicBasicAuth(app)
+graph = Graph()
 #db = mongo.db
 
 ''' Achievement operation
@@ -159,6 +161,51 @@ def get_all_stations():
         object.append(found_station)
 
     return jsonify(object)
+
+@app.route('/station/direct', methods=['GET'])
+def get_directions():
+    from_station = request.args.get('from')
+    from_station = from_station.title()
+    to_station = request.args.get('to')
+    to_station = to_station.title()
+    object = []
+
+    querys = "MATCH (a:Station {name:'"+ from_station +"'}), (b:Station {name:'"+ to_station +"'})"
+    querys += " MATCH p = allShortestPaths((a)-[:CONNECTS*]-(b)) RETURN p"
+    # print(querys)
+
+    wgraph = graph.data(querys)
+
+    for wpath in wgraph:
+        innerobject = []
+        walking = wpath['p']
+        nodelist = list(walking.nodes())
+        relationlist = list(walking.relationships())
+
+        i = 0
+        while i < len(relationlist):
+            myobject = {
+                'name': nodelist[i]['name'],
+                'latitude': nodelist[i]['latitude'],
+                'longitude': nodelist[i]['longitude'],
+                'way': {
+                    'line': relationlist[i]['metro'],
+                    'color': relationlist[i]['color']
+                }
+            }
+            innerobject.append(myobject)
+            i += 1
+
+        lastobject = {
+            'name': nodelist[i]['name'],
+            'latitude': nodelist[i]['latitude'],
+            'longitude': nodelist[i]['longitude']
+        }
+        innerobject.append(lastobject)
+        object.append(innerobject)
+
+    return jsonify(object)
+
 
 @app.route('/station/search', methods=['GET'])
 def search_station():
