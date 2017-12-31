@@ -1,0 +1,29 @@
+{% extends "index.html" %}
+{% block title %}Manage Lines{% endblock %}
+{% block content %}
+<!-- content starts here -->
+<h2>List of lines</h2>
+<div class="form-group">
+	<input type="text" class="form-control" id="inputSearchStation" onkeyup="searchfunction()" placeholder="Search by name">
+</div>
+<table class="table" id="tableStation">
+	<thead>
+		<tr>
+			<th scope="col">Name</th>
+			<th scope="col">Description</th>
+			<th scope="col">Operations</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for line in lines %}
+		<tr><!-- for loop -->
+			<td>{{line['name']}}</td>
+			<td>{{line['description']}}</td>
+			<td><a href="{{url_for('panel_edit_line', name=line['name'])}}" class="btn btn-primary">Edit</a> <a href="{{url_for('panel_delete_line', name=line['name'])}}" class="btn btn-danger">Delete</a></td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+<script src="{{ url_for('static', filename='js/search.js')	}}"></script>
+<!-- content ends here -->
+{% endblock %}

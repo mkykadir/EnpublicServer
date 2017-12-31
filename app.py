@@ -1,10 +1,11 @@
-from flask import Flask, url_for, redirect, jsonify, request
+from flask import Flask, url_for, redirect, jsonify, request, render_template, flash, send_from_directory
 from flask_pymongo import PyMongo
 from flask_basicauth import BasicAuth
-from py2neo import Graph, Walkable
+from py2neo import Graph, Walkable, Node, Relationship
 import datetime
 import bcrypt
 import os
+from decimal import Decimal
 # from decimal import Decimal
 
 # BasicAuth check_credentials method override
@@ -20,8 +21,12 @@ class EnpublicBasicAuth(BasicAuth):
 
         return False
 
+#UPLOAD_FOLDER = 'C:\Users\mkyka\Documents\Enpublic\Uploads'
 app = Flask(__name__)
+app.secret_key = 'merhabalar'
 app.config['MONGO_URI'] = os.environ['ENPUBLIC_DB_SERVER']
+app.config['UPLOAD_FOLDER'] = 'files'
+#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 mongo = PyMongo(app)
 auth = EnpublicBasicAuth(app)
 graph = Graph()
@@ -49,6 +54,171 @@ graph = Graph()
                 {'_id': auth_header.username, 'achievement.id': '111'}, {'$inc': {'achievement.$.value': 1}}
             )
 '''
+def allowed_file(filename):
+    splitted = filename.split('.')
+    print(splitted[1].lower())
+    if splitted[1].lower() == 'txt':
+        print('true')
+        return True
+    else:
+        return False
+
+@app.route('/samples/<samplename>', methods=['GET'])
+def get_sample_file(samplename):
+    uploads = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+    return send_from_directory(directory=uploads, filename=samplename+'.txt', as_attachment=True)
+
+@app.route('/panel/add_station', methods=['GET'])
+def panel_add_station():
+    return render_template('addstation.html')
+
+@app.route('/panel/add_station', methods=['POST'])
+def panel_add_single_station():
+    name = request.form['inputStationName']
+    location = request.form['inputStationLocation']
+    location_strip = location.split(',')
+    # TODO: Check for array size!
+    latitude = float(location_strip[0])
+    longitude = float(location_strip[1])
+    tx = graph.begin()
+    new_station = Node("Station", name=name, latitude=latitude, longitude=longitude)
+    tx.create(new_station)
+    tx.commit()
+    return redirect(url_for('panel_add_station'))
+
+@app.route('/panel/add_stations', methods=['POST'])
+def panel_add_multiple_station():
+    if 'file' not in request.files:
+        flash('File error')
+        return redirect(url_for('panel_add_station'))
+
+    file = request.files['file']
+    print(file.filename)
+    if file.filename == '':
+        flash('No file provided')
+        return redirect(url_for('panel_add_station'))
+
+    if file and allowed_file(file.filename):
+        file_content = file.stream.read()
+        file_lines = file_content.splitlines()
+        tx = graph.begin()
+        for line in file_lines:
+            line = line.decode("utf-8")
+            words = line.split(',')
+            #TODO: Check for array size
+            station_name = words[0]
+            station_latitude = float(words[1])
+            station_longitude = float(words[2])
+            new_station = Node("Station", name=station_name, latitude=station_latitude, longitude=station_longitude)
+            tx.create(new_station)
+
+        tx.commit()
+        return redirect(url_for('panel_add_station'))
+
+    return redirect(url_for('panel_add_station'))
+
+@app.route('/panel/list_station', methods=['GET'])
+def panel_list_station():
+    all_stations = graph.run("MATCH (a:Station) RETURN a.name, a.latitude, a.longitude, id(a)").data()
+    return render_template('liststation.html', stations=all_stations)
+
+@app.route('/panel/edit_station/<id>', methods=['GET'])
+def panel_edit_station(id):
+    return redirect(url_for('panel_list_station'))
+
+@app.route('/panel/delete_station/<id>', methods=['GET'])
+def panel_delete_station(id):
+    return redirect(url_for('panel_list_station'))
+
+@app.route('/panel/add_line', methods=['GET'])
+def panel_add_line():
+    all_stations = graph.run("MATCH (a:Station) RETURN a.name, id(a)").data()
+    return render_template('addline.html', stations=all_stations)
+
+@app.route('/panel/add_line', methods=['POST'])
+def panel_add_single_line():
+    name = request.form['inputLineName']
+    description = request.form['inputLineDescription']
+    color = request.form['inputLineColor']
+    stations = request.form.getlist('inputLineStations')
+    color = color[1:]
+    tx = graph.begin()
+    i = 0
+    while i < len(stations) - 1:
+        start_node = graph.node(int(stations[i]))
+        end_node = graph.node(int(stations[i+1]))
+
+        se = Relationship(start_node, "CONNECTS", end_node, color=color, description=description, metro=name, distance=2)
+        tx.create(se)
+        i += 1
+
+    tx.commit()
+    #TODO: Distance bilgilerinin girileceği sayfaya yönlendir
+    return redirect(url_for('panel_add_line'))
+
+@app.route('/panel/add_lines', methods=['POST'])
+def panel_add_multiple_line():
+    if 'file' not in request.files:
+        flash('Please select a file')
+        return redirect(url_for('panel_add_line'))
+
+    file = request.files['file']
+    print(file.filename)
+    if file.filename == '':
+        flash('Filename error')
+        return redirect(url_for('panel_add_line'))
+
+    if file and allowed_file(file.filename):
+        file_content = file.stream.read()
+        file_lines = file_content.splitlines()
+        tx = graph.begin()
+        for line in file_lines:
+            line = line.decode("utf-8")
+            words = line.split(',')
+            #TODO: Check for array size
+            line_name = ''
+            line_description = ''
+            line_color = ''
+            line_stations = []
+            i = 0
+            for word in words:
+                if i == 0:
+                    line_name = word
+                elif i == 1:
+                    line_description = word
+                elif i == 2:
+                    line_color = word
+                else:
+                    line_stations.append(int(word))
+
+                i += 1
+
+            i = 0
+            while i < len(line_stations) - 1:
+                #TODO: Check if station exists
+                start_node = graph.node(int(line_stations[i]))
+                end_node = graph.node(int(line_stations[i+1]))
+
+                se = Relationship(start_node, "CONNECTS", end_node, color=line_color, description=line_description, metro=line_name, distance=2)
+                tx.create(se)
+                i += 1
+
+        tx.commit()
+    # TODO: Distance girilecek sayfaya yönlendir
+    return redirect(url_for('panel_add_line'))
+
+@app.route('/panel/list_lines', methods=['GET'])
+def panel_list_line():
+    all_lines = graph.run("MATCH (a:Station)-[r:CONNECTS]->(b:Station) RETURN distinct(r.metro) AS name, r.description AS description").data()
+    return render_template('listline.html', lines=all_lines)
+
+@app.route('/panel/edit_line/<name>', methods=['GET'])
+def panel_edit_line(name):
+    return redirect(url_for('panel_list_line'))
+
+@app.route('/panel/delete_line/<name>', methods=['GET'])
+def panel_delete_line(name):
+    return redirect(url_for('panel_list_line'))
 
 @app.route('/signup', methods=['POST'])
 def add_user():

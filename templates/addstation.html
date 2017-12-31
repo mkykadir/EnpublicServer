@@ -1,0 +1,43 @@
+{% extends "index.html" %}
+{% block title %}Add Station{% endblock %}
+{% block content %}
+<!-- content starts here -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+		<div class="alert alert-primary alert-dismissible fade show" role="alert">
+			{{message}}
+			<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+			</button>
+		</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<h2>Add Single Station</h2>
+<form role="form" method="post" name="addstation" action="{{ url_for('panel_add_single_station') }}" id="addsinglestation">
+	<div class="form-group">
+		<label for="inputStationName">Name</label>
+		<input type="text" class="form-control" id="inputStationName" placeholder="Enter name of station" name="inputStationName">
+	</div>
+	<div class="form-group">
+		<label for="inputStationLocation">Location</label>
+		<input type="text" class="form-control" id="inputStationLocation" placeholder="Latitude,longitude" aria-describedby="locationHelp" name="inputStationLocation">
+		<small id="locationHelp" class="form-text text-muted">Example input: 40.12348,28.12345</small>
+	</div>
+	<button type="submit" class="btn btn-success">Add Station</button>
+</form>
+
+<hr>
+
+<h2>Add Multiple Stations</h2>
+<form enctype="multipart/form-data" role="form" method="post" name="addmultiplestation" action="{{url_for('panel_add_multiple_station')}}" id="addmultiplestation">
+	<div class="form-group">
+		<label for="inputStationsFile">Stations TXT file, <a href="{{ url_for('get_sample_file', samplename='stations') }}" target="_blank">See file format</a></label>
+		<input type="file" class="form-control-file" id="inputStationsFile" accept=".txt" name="file">
+	</div>
+	<button type="submit" class="btn btn-primary">Add Stations</button>
+</form>
+
+<!-- content ends here -->
+{% endblock %}
