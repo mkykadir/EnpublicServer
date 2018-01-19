@@ -301,7 +301,7 @@ def get_achievement(achievement_id):
     ret_achievement.pop('value', None)
     return jsonify(ret_achievement)
 
-
+'''
 @app.route('/station', methods=['POST'])
 def add_station():
     data = request.get_json()
@@ -317,7 +317,8 @@ def add_station():
         count = count + 1
 
     return jsonify({'num': count})
-
+'''
+'''
 @app.route('/station', methods=['GET'])
 def get_all_stations():
     object = []
@@ -331,7 +332,7 @@ def get_all_stations():
         object.append(found_station)
 
     return jsonify(object)
-
+'''
 @app.route('/station/direct', methods=['GET'])
 def get_directions():
     from_station = request.args.get('from')
@@ -340,11 +341,11 @@ def get_directions():
     to_station = to_station.title()
     object = []
 
-    querys = "MATCH (a:Station {name:'"+ from_station +"'}), (b:Station {name:'"+ to_station +"'})"
+    querys = "MATCH (a:Station {name:'{from}'}), (b:Station {name:'{to}'})"
     querys += " MATCH p = allShortestPaths((a)-[:CONNECTS*]-(b)) RETURN p"
     # print(querys)
 
-    wgraph = graph.data(querys)
+    wgraph = graph.data(querys, parameters={'from': from_station, 'to': to_station})
 
     for wpath in wgraph:
         innerobject = []
@@ -381,16 +382,14 @@ def get_directions():
 def search_station():
     object = []
     name = request.args.get('name')
-    regex = "^" + name
+    query = "MATCH (n:Station) WHERE n.name=~'(?i){name}.*' RETURN n.name, n.latitude, n.longitude"
 
-    places = mongo.db.stations.find({"name": {"$regex": regex, "$options": 'i'}})
-
+    places = graph.data(query, parameters={'name': name})
+    #places = mongo.db.stations.find({"name": {"$regex": regex, "$options": 'i'}})
     for station in places:
         found_station = {
-            'name': station['name'],
-            'type': station['type'],
-            'location': station['location'],
-            'line': station['line']
+            'name': station['n.name'],
+            'location': [station['n.latitude'],station['n.longitude']]
         }
         object.append(found_station)
 
@@ -411,14 +410,13 @@ def get_nearby_location_stations():
     lat = float(request.args.get('lat'))
     lon = float(request.args.get('lon'))
 
-    places = mongo.db.stations.find({"location": {"$near": [lat, lon]}}).limit(10)
+    query = "CALL spatial.withinDistance('geom', {latitude: {lat}, longitude: {lon}}, 2) YIELD node AS d RETURN d.name AS name, d.latitude AS latitude, d.longitude AS longitude"
+    places = graph.data(query, parameters={'lat': lat, 'lon': lon})
 
     for station in places:
         nearby_station = {
             'name': station['name'],
-            'type': station['type'],
-            'location': station['location'],
-            'line': station['line']
+            'location': [station['latitude'], station['longitude']]
         }
         object.append(nearby_station)
 
