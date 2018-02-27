@@ -9,6 +9,11 @@ query = "MATCH (n:Station) WHERE n.name=~{name} RETURN n.name, n.latitude, n.lon
 places = graph.data(query, parameters={'name': name})
 '''
 
+"""
+@apiDefine userperm User Permission Required
+    This call requires user permissions to work, users' credentials should be passed through header with BasicAuth.
+"""
+
 
 # Authentication credential check override
 class EnpublicBasicAuth(BasicAuth):
@@ -46,8 +51,43 @@ def unauthorized_access(error):
 # ===START: USER OPERATIONS===
 
 
-# Register new user to the system
-# NOTE: This call will not register for panel administration
+"""
+@api {post} /api/signup Register User
+@apiName RegisterUser
+@apiGroup User
+@apiDescription Register new client user to the system. Android client users and Android client application
+uses this call to register new user. This call doesn't work for admin users and management panel.
+@apiVersion 1.0.0
+@apiParam {String} username Username of the user
+@apiParam {String} password Password of the user
+@apiParam {String} name Full real name of the user
+@apiParam {String} email E-Mail address of the user
+@apiParamExample {json} Example usage:
+    {
+        "username": "user",
+        "password": "pass",
+        "name": "User Name",
+        "email": "user@provider.com"
+    }
+@apiSuccess {String} username Username of the user
+@apiSuccess {String} name Full real name of the user
+@apiSuccess {String} email E-Mail address of the user
+@apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "username": "user",
+        "name": "User Name",
+        "email": "user@provider.com"
+    }
+@apiError AllErrors Error description will be returned in message
+@apiErrorExample {json} Error-Response:
+    HTTP/1.1 500 Server Error
+    {
+        "message": "Error detail and explanation message"
+    }
+"""
+
+
 @app.route('/api/signup', methods=['POST'])
 def api_signup_user():
     data = request.get_json()
@@ -89,8 +129,35 @@ def api_check_user():
 '''
 
 
-# Get profile information of logged in user
-# NOTE: This call will not check for panel administration
+"""
+@api {get} /api/profile Profile Information of User
+@apiName UserProfile
+@apiPermission userperm
+@apiGroup User
+@apiDescription Get profile information of the user. Android client uses this call to show users' profile.
+@apiVersion 1.0.0
+@apiHeader {String} authorization BasicAuth value of username and password tuple
+@apiHeaderExample {String} BasicAuth-Example
+    Basic dXNlcjpwYXNz
+@apiSuccess {String} username Username of the user
+@apiSuccess {String} name Full real name of the user
+@apiSuccess {String} email E-Mail address of the user
+@apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "username": "user",
+        "name": "User Name",
+        "email": "user@provider.com"
+    }
+@apiError ServerErrors Error description will be returned in message
+@apiErrorExample {json} Error-Response:
+    HTTP/1.1 500 Server Error
+    {
+        "message": "Error detail and explanation message"
+    }
+"""
+
+
 @app.route('/api/profile', methods=['GET'])
 @auth.required
 def api_user_profile():
