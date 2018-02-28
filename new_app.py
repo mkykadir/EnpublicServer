@@ -13,6 +13,10 @@ places = graph.data(query, parameters={'name': name})
 @apiDefine userperm User Permission Required
     This call requires user permissions to work, users' credentials should be passed through header with BasicAuth.
 """
+"""
+@apiDefine adminperm Admin Permission Required
+    This call designed and developed for management console and only intended for admin use only from managemenet console.
+"""
 
 
 # Authentication credential check override
@@ -33,10 +37,14 @@ class EnpublicBasicAuth(BasicAuth):
         return False
 
 
-app = Flask(__name__)
-app.secret_key = 'merhabalar'  # TODO: Need to select good key
-auth = EnpublicBasicAuth(app)
-graph = Graph(password='7823')  # TODO: Need to get password from ENV variables
+try:
+    app = Flask(__name__)
+    app.secret_key = 'merhabalar'  # TODO: Need to select good key
+    auth = EnpublicBasicAuth(app)
+    graph = Graph(password='7823')  # TODO: Need to get password from ENV variables
+except Exception as ex:
+    print(str(ex))
+    exit(1)
 
 # Error Handlers
 
@@ -128,7 +136,6 @@ def api_check_user():
     # check credentials by basic auth
 '''
 
-
 """
 @api {get} /api/profile Profile Information of User
 @apiName UserProfile
@@ -136,7 +143,7 @@ def api_check_user():
 @apiGroup User
 @apiDescription Get profile information of the user. Android client uses this call to show users' profile.
 @apiVersion 1.0.0
-@apiHeader {String} authorization BasicAuth value of username and password tuple
+@apiHeader {String} authorization BasicAuth value of username and password pair
 @apiHeaderExample {String} BasicAuth-Example
     Basic dXNlcjpwYXNz
 @apiSuccess {String} username Username of the user
@@ -177,7 +184,46 @@ def api_user_profile():
         return jsonify({'message': str(e)}), 500
 
 
-# Get achieved achievements by user
+"""
+@apiDefine achievementObject
+@apiSuccess {Date} date Date of achievement gain
+@apiSuccess {String} desc Description of achievement
+@apiSuccess {String} key Identifier for achievement
+"""
+
+
+"""
+@api {get} /api/achievement Achievements Gained by User
+@apiName UserAchievements
+@apiPermission userperm
+@apiGroup User
+@apiDescription Get list of achievement that were gained by user during usage of system
+@apiVersion 1.0.0
+@apiHeader {String} authorization BasicAuth value of username and password pair
+@apiHeaderExample {String} BasicAuth-Example
+    Basic dXNlcjpwYXNz
+@apiUse achievementObject
+@apiSuccess {achivementObject[]} result  List of achievements
+@apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    {
+        "result": [
+            {
+                "date": 1519208927000,
+                "desc": "Achievement description",
+                "key": "achv-key"
+            }
+        ]
+    }
+@apiError ServerErrors Error description will be returned in message
+@apiErrorExample {json} Error-Response:
+    HTTP/1.1 500 Server Error
+    {
+        "message": "Error detail and explanation message"
+    }
+"""
+
+
 @app.route('/api/achievement', methods=['GET'])
 @auth.required
 def api_user_achievements():
@@ -185,15 +231,39 @@ def api_user_achievements():
         auth_username = request.authorization.username
         query = "MATCH (n:User {username:{username}})-[b:ACHIEVED]->(a:Achievement) RETURN a.desc AS desc, " \
                 "a.key AS key, b.date AS date "
-        achievements = graph.data(query, parameters={'username': auth_username})
+        graph_achievements = graph.data(query, parameters={'username': auth_username})
+        achievements = {
+            "result": graph_achievements
+        }
         return jsonify(achievements)
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
 
-# Get detailed achievement information
-# This information will be used when user clicks one of the achieved achievements
-# in his/her profile
+"""
+@api {get} /api/achievement/:key Get Achievement Details
+@apiName AchievementDetails
+@apiGroup Gamification
+@apiDescription Get detailed information of achievement identified by key value
+@apiVersion 1.0.0
+@apiParam {String} key Unique ID of achievement, key value
+@apiUse achievementObject
+@apiSuccessExample {json} Success-Response
+    HTTP/1.1 200 OK
+    {
+        "date": 1519208927000,
+        "desc": "Achievement description",
+        "key": "achv-key"
+    }
+@apiError ServerErrors Error description will be returned in message
+@apiErrorExample {json} Error-Response:
+    HTTP/1.1 500 Server Error
+    {
+        "message": "Error detail and explanation message"
+    }
+"""
+
+
 @app.route('/api/achievement/<achievement_id>', methods=['GET'])
 def api_get_achievement_info(achievement_id):
     try:
@@ -204,6 +274,19 @@ def api_get_achievement_info(achievement_id):
         return jsonify({'message': 'Item not found'}), 404
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+
+
+# TODO: Do we need add achievement operation since we cannot manage calls for this?
+"""
+@api {post} /api/achievement Add New Achievement
+@apiName AddAchievement
+@apiPermission adminperm
+@apiGroup Gamification
+@apiDescription Add new achievement to the system
+@apiVersion 1.0.0
+@apiParam {String} desc Description of achievement
+@apiParam {String} key Unique identifier for achievement 
+"""
 
 
 # TODO: Add admin authentication to _admin_ functions
@@ -229,11 +312,10 @@ def api_admin_achievement_add():
 
 # ===START: STATION OPERATIONS===
 
-# TODO: POST version for admin panel to add station(s)
+
 @app.route('/api/station', methods=['GET'])
 @auth.required
 def api_station_search():
-    # TODO: If admin return statistical information of station
     name = request.args.get('name')
     if name is None:
         # Return nearby stations
@@ -360,7 +442,6 @@ def api_admin_station_stats():
 
 @app.route('/api/station', methods=['POST'])
 def api_admin_station_add():
-    # TODO: Add lines
     data = request.get_json()
     query = "CREATE (a:Station {name:{name}, latitude:{lat}, longitude:{lon}, directed:0, nearby:0, searched:0," \
             "visited:0}) WITH a CALL spatial.addNode('stati',a) YIELD node RETURN node"
@@ -422,4 +503,4 @@ def api_search_station_name():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)  # TODO: Remove Debug from release version
+    app.run(host='0.0.0.0', debug=True)  # TODO: Remove Debug from release version
