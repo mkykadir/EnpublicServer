@@ -1,0 +1,54 @@
+{% extends "index.html" %}
+{% block title %}Add Station{% endblock %}
+{% block content %}
+<!-- content starts here -->
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+		<div class="alert alert-primary alert-dismissible fade show" role="alert">
+			{{message}}
+			<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+			</button>
+		</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<h2>Add Station</h2>
+<div name="addstation" id="addsinglestation">
+	<div class="form-group">
+		<label for="inputStationName">Name</label>
+		<input type="text" class="form-control" id="inputStationName" placeholder="Enter name of station" name="inputStationName">
+	</div>
+	<div class="form-group">
+		<label for="inputStationLocation">Location</label>
+		<input type="text" class="form-control" id="inputStationLocation" placeholder="Latitude,longitude" aria-describedby="locationHelp" name="inputStationLocation">
+		<small id="locationHelp" class="form-text text-muted">Example input: 40.12348,28.12345</small>
+	</div>
+	<button class="btn btn-default" id="add-single-station">Add Station</button>
+    <small class="form-text text-muted">This button will add stations to temporary list below. You have to click add all stations button to save all of them.</small>
+</div>
+
+<hr>
+
+<h2>Stations to Add</h2>
+<table class="table" id="waiting-stations">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Operations</th>
+        </tr>
+    </thead>
+    <tbody>
+    <!-- add station here -->
+    </tbody>
+</table>
+<button class="btn btn-success" id="add-all-stations">Add All Stations</button>
+
+
+<script src="{{ url_for('static', filename='js/addstation.js') }}"></script>
+<!-- content ends here -->
+{% endblock %}
