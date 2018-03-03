@@ -1,8 +1,12 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_basicauth import BasicAuth
-from py2neo import Graph, Walkable, Node, Relationship, DatabaseError, GraphError
+from py2neo import Graph, DatabaseError, GraphError, ConstraintError, ClientError
 import time
 import bcrypt
+
+
+# TODO: Return proper error messages for API calls
+
 
 '''
 query = "MATCH (n:Station) WHERE n.name=~{name} RETURN n.name, n.latitude, n.longitude"
@@ -15,7 +19,8 @@ places = graph.data(query, parameters={'name': name})
 """
 """
 @apiDefine adminperm Admin Permission Required
-    This call designed and developed for management console and only intended for admin use only from managemenet console.
+    This call designed and developed for management console and only intended for admin use only from 
+    management console.
 """
 
 
@@ -24,9 +29,9 @@ class EnpublicBasicAuth(BasicAuth):
     def check_credentials(self, username, password):
         query = "MATCH (n:User) WHERE n.username={username} RETURN n.salt AS salt, n.hash AS hash"
         try:
-            user_salthash = graph.data(query, parameters={'username': username})
-            salt_value = user_salthash[0]['salt']  # Query returns array
-            hash_value = user_salthash[0]['hash']  # Query returns array
+            user_salt_hash = graph.data(query, parameters={'username': username})
+            salt_value = user_salt_hash[0]['salt']  # Query returns array
+            hash_value = user_salt_hash[0]['hash']  # Query returns array
             login_value = bcrypt.hashpw(str.encode(password), str.encode(salt_value))
             if login_value.decode('utf-8') == hash_value:
                 return True
@@ -35,6 +40,11 @@ class EnpublicBasicAuth(BasicAuth):
             return False
 
         return False
+
+
+app = None
+auth = None
+graph = None
 
 
 try:
@@ -50,7 +60,7 @@ except Exception as ex:
 
 
 @app.errorhandler(401)
-def unauthorized_access(error):
+def unauthorized_access():
     return jsonify({'message': 'Unauthorized access, you need an account to access.'}), 401
 
 
@@ -440,6 +450,19 @@ def api_admin_station_stats():
         return jsonify({'message': str(e)}), 500
 
 
+@app.route('/api/station/all', methods=['GET'])
+def api_admin_station_all():
+    query = "MATCH(n:Station) RETURN n.name AS name, n.latitude AS latitude, n.longitude AS longitude ORDER " \
+            "BY n.name"
+
+    try:
+        stations = graph.data(query)
+        return jsonify(stations)
+    except Exception as e:
+        print(type(e))
+        return jsonify({'message': str(e)}),500
+
+
 @app.route('/api/station', methods=['POST'])
 def api_admin_station_add():
     data = request.get_json()
@@ -450,14 +473,90 @@ def api_admin_station_add():
         i = 0
         last_station = ''
         for station in data:
-            graph.data(query, parameters={'name': station['name'], 'lat': station['latitude'], 'lon': station['longitude']})
+            graph.data(query, parameters={'name': station['name'],
+                                          'lat': station['latitude'],
+                                          'lon': station['longitude']})
             last_station = station['name']
             i += 1
 
         message = "Total {0} stations added, last station added was {1}".format(i, last_station)
         return jsonify({'message': message}), 200
+    except ConstraintError as e:
+        return jsonify({'message': 'Station already exists, details: ' + str(e)}), 406
     except Exception as e:
+        print(str(e))
+        print(type(e))
         return jsonify({'message': str(e)}), 500
+
+
+@app.route('/api/station', methods=['DELETE'])
+def api_admin_station_delete():
+    data = request.get_json()
+    query = "MATCH (n:Station {name: {name}}) WITH n, n.name AS name DETACH DELETE n RETURN name"
+
+    deleted = 0
+    not_deleted = 0
+    last_station = ''
+    for station in data:
+        try:
+            result = graph.data(query, parameters={'name': station})
+            print(result)
+            if len(result) == 0:
+                not_deleted += 1
+            else:
+                deleted += 1
+                last_station = station
+        except Exception as e:
+            print(str(e))
+            print(type(e))
+            not_deleted += 1
+            continue
+
+    message = ""
+    if deleted > 0:
+        message += "Total {0} stations deleted. ".format(deleted)
+
+    if last_station != '':
+        message += "Last station deleted was {0}. ".format(last_station)
+
+    if not_deleted > 0:
+        message += "{0} unsuccessful deletions.".format(not_deleted)
+
+    return jsonify({'message': message})
+
+
+@app.route('/api/station', methods=['PUT'])
+def api_admin_station_update():
+    data = request.get_json()
+
+    query = "MATCH (n:Station {name:{oldname}}) SET n.name = {newname}, n.latitude = {latitude}, n.longitude = {" \
+            "longitude}"
+
+    updated = 0
+    last_updated = ''
+    not_updated = 0
+    for station in data:
+        try:
+            graph.data(query, parameters=station)
+            last_updated = station['oldname']
+            updated += 1
+        except Exception as e:
+            print(str(e))
+            print(type(e))
+            not_updated += 1
+            continue
+
+    message = ""
+    if updated > 0:
+        message += "Total {0} stations updated. ".format(updated)
+
+    if last_updated != '':
+        message += "Last station updated was old {0}. ".format(last_updated)
+
+    if not_updated > 0:
+        message += "{0} unsuccessful updates.".format(not_updated)
+
+    return jsonify({'message': message})
 
 
 @app.route('/api/line', methods=['POST'])
@@ -489,6 +588,9 @@ def api_admin_line_add():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
+
+# TODO: Line delete and edit
+
 '''
 # Search stations by name
 @app.route('/api/station/search', methods=['GET'])
@@ -500,6 +602,16 @@ def api_search_station_name():
 # ===END: STATION OPERATIONS===
 
 # Administration GUI calls
+
+
+@app.route('/addstation', methods=['GET'])
+def panel_add_station():
+    return render_template('new_addstation.html')
+
+
+@app.route('/liststation', methods=['GET'])
+def panel_list_station():
+    return render_template('new_liststation.html')
 
 
 if __name__ == '__main__':
