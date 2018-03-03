@@ -1,0 +1,51 @@
+{% extends "index.html" %}
+{% block title %}Manage Stations{% endblock %}
+{% block content %}
+<!-- content starts here -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.css') }}" />
+
+<div id="dialog-form" title="Edit Station">
+    <form>
+        <fieldset>
+            <input type="text" id="originalStationName" name="originalStationName" hidden>
+        <div class="form-group">
+            <label for="inputStationName">Name</label>
+            <input type="text" class="form-control" id="inputStationName" placeholder="Enter name of station" name="inputStationName">
+        </div>
+        <div class="form-group">
+            <label for="inputStationLocation">Location</label>
+            <input type="text" class="form-control" id="inputStationLocation" placeholder="Latitude,longitude" aria-describedby="locationHelp" name="inputStationLocation">
+            <small id="locationHelp" class="form-text text-muted">Example input: 40.12348,28.12345</small>
+        </div>
+        </fieldset>
+    </form>
+</div>
+
+
+<h2>List of stations</h2>
+<div class="form-group">
+	<input type="text" class="form-control" id="inputSearchStation" placeholder="Search by name">
+</div>
+<table class="table" id="table-stations">
+	<thead>
+		<tr>
+			<th scope="col">Name</th>
+			<th scope="col">Location</th>
+			<th scope="col">Operations</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for station in stations %}
+		<tr><!-- for loop -->
+			<td>{{station['a.name']}}</td>
+			<td><a href="https://www.google.com/maps/?q={{station['a.latitude']}},{{station['a.longitude']}}" target="_blank">{{station['a.latitude']}},{{station['a.longitude']}}</a></td>
+			<td><a href="{{url_for('panel_edit_station', id=station['id(a)'])}}" class="btn btn-primary">Edit</a> <a href="{{url_for('panel_delete_station', id=station['id(a)'])}}" class="btn btn-danger">Delete</a></td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+
+<script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+<script src="{{ url_for('static', filename='js/liststation.js') }}"></script>
+<!-- content ends here -->
+{% endblock %}
