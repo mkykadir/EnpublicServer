@@ -1,0 +1,93 @@
+{% extends "index.html" %}
+{% block title %}Add Line{% endblock %}
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.css') }}">
+    <!-- content starts here -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+		<div class="alert alert-primary alert-dismissible fade show" role="alert">
+			{{message}}
+			<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+			</button>
+		</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+	<!-- content starts -->
+
+
+	<h2>Add Line</h2>
+	<div id="add-single-line">
+    <p>
+        If you want to add stations to existing line, enter existing line name and add one station from line to stations list
+        to connect station to be added to the line.
+    </p>
+		<div class="form-group">
+			<label for="inputLineName">Name</label>
+			<input type="text" class="form-control" id="inputLineName" name="inputLineName" placeholder="Enter name of line (this will be identifier)">
+		</div>
+		<div class="form-group">
+			<label for="inputLineDescription">Description</label>
+			<input type="text" class="form-control" id="inputLineDescription" name="inputLineDescription" placeholder="Enter description for line">
+		</div>
+		<div class="form-group">
+			<label for="inputLineColor">Color</label>
+			<input type="color"  id="inputLineColor" name="inputLineColor" aria-describedby="colorHelp">
+			<small id="colorHelp" class="form-text text-muted">Selected color will be shown on clients' maps</small>
+		</div>
+	</div>
+	<hr>
+    <div id="add-station-line">
+        <p>
+            Add stations in order, you don't need to add reverse ordered version of the same line. Distance value will be
+            the distance to next station to be added. You can give random distane for last station.
+        </p>
+        <div class="row form-group">
+            <div class="col-md-6">
+                <input type="text" id="inputNameStation" placeholder="Station name" class="form-control">
+                <small class="form-text text-muted">Selecting name from suggestions is suggested</small>
+            </div>
+        </div>
+        <div class="form-group">
+            <input type="number" id="inputDistanceStation" placeholder="Distance to next station (unitless)" class="form-control">
+        </div>
+        <div class="form-group">
+            <button class="btn btn-secondary" id="add-station-button">Add Station</button>
+        </div>
+    </div>
+    <table class="table" id="waiting-pairs">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Distance</th>
+                <th>Operations</th>
+            </tr>
+        </thead>
+        <tbody>
+        <!-- add station here -->
+        </tbody>
+    </table>
+    <div class="form-group">
+        <button class="btn btn-success" id="add-line-button">Add Line</button>
+    </div>
+    <hr>
+    <form enctype="multipart/form-data" role="form" method="post" name="add-multiple-line" action="{{ url_for('panel_add_multiple_line') }}">
+        <div class="form-group">
+            <input type="file" class="form-control-file" id="inputLinesFile" accept=".json" name="file">
+            <button class="btn btn-primary" type="submit" id="upload-json-file-button">Upload JSON File</button>
+        </div>
+    </form>
+    <div class="form-group">
+        <a href="{{ url_for('get_sample_file', samplename='line') }}" class="btn btn-link" id="get-sample-file-button">Sample File</a>
+        <small class="text-muted">You can upload JSON file to add line, check sample file for syntax</small>
+    </div>
+
+
+
+	<script src="{{ url_for('static', filename='js/jquery-3.3.1.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/addline.js') }}"></script>
+{% endblock %}
