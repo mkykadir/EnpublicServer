@@ -47,6 +47,17 @@
     </tbody>
 </table>
 <button class="btn btn-success" id="add-all-stations">Add All Stations</button>
+<hr>
+<form enctype="multipart/form-data" role="form" method="post" name="add-multiple-station" action="{{ url_for('panel_add_multiple_station') }}">
+    <div class="form-group">
+        <input type="file" class="form-control-file" id="inputLinesFile" accept=".json" name="file">
+        <button class="btn btn-primary" type="submit" id="upload-json-file-button">Upload JSON File</button>
+    </div>
+</form>
+<div class="form-group">
+    <a href="{{ url_for('get_sample_file', samplename='station') }}" class="btn btn-link" id="get-sample-file-button">Sample File</a>
+    <small class="text-muted">You can upload JSON file to add stations, check sample file for syntax</small>
+</div>
 
 
 <script src="{{ url_for('static', filename='js/addstation.js') }}"></script>

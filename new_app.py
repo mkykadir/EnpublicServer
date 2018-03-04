@@ -1,8 +1,9 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, redirect, url_for, json, send_from_directory
 from flask_basicauth import BasicAuth
 from py2neo import Graph, DatabaseError, GraphError, ConstraintError, ClientError
 import time
 import bcrypt
+import os
 
 
 # TODO: Return proper error messages for API calls
@@ -50,6 +51,7 @@ graph = None
 try:
     app = Flask(__name__)
     app.secret_key = 'merhabalar'  # TODO: Need to select good key
+    app.config['UPLOAD_FOLDER'] = 'files'
     auth = EnpublicBasicAuth(app)
     graph = Graph(password='7823')  # TODO: Need to get password from ENV variables
 except Exception as ex:
@@ -466,6 +468,10 @@ def api_admin_station_all():
 @app.route('/api/station', methods=['POST'])
 def api_admin_station_add():
     data = request.get_json()
+    return _api_admin_station_add(data)
+
+
+def _api_admin_station_add(data):
     query = "CREATE (a:Station {name:{name}, latitude:{lat}, longitude:{lon}, directed:0, nearby:0, searched:0," \
             "visited:0}) WITH a CALL spatial.addNode('stati',a) YIELD node RETURN node"
 
@@ -562,7 +568,10 @@ def api_admin_station_update():
 @app.route('/api/line', methods=['POST'])
 def api_admin_line_add():
     data = request.get_json()
+    return _api_admin_line_add(data)
 
+
+def _api_admin_line_add(data):
     try:
         stations = data['stations']
         query = "MATCH (a:Station {name:{start}}), (b:Station {name:{end}}) CREATE (a)-[rel:CONNECTS {color:{" \
@@ -588,7 +597,6 @@ def api_admin_line_add():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-
 # TODO: Line delete and edit
 
 '''
@@ -604,14 +612,67 @@ def api_search_station_name():
 # Administration GUI calls
 
 
+@app.route('/samples/<samplename>', methods=['GET'])
+def get_sample_file(samplename):
+    uploads = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+    return send_from_directory(directory=uploads, filename=samplename+'.json', as_attachment=True)
+
+
+def allowed_file(filename):
+    splitted = filename.split('.')
+    print(splitted[1].lower())
+    if splitted[1].lower() == 'json':
+        return True
+    else:
+        return False
+
+
 @app.route('/addstation', methods=['GET'])
 def panel_add_station():
     return render_template('new_addstation.html')
 
 
+@app.route('/addstations', methods=['POST'])
+def panel_add_multiple_station():
+    if 'file' not in request.files:
+        return redirect(url_for('panel_add_station'))
+
+    file = request.files['file']
+    if file.filename == '':
+        return redirect(url_for('panel_add_station'))
+
+    if file and allowed_file(file.filename):
+        file_content = file.stream.read()
+        data = json.loads(file_content)
+        _api_admin_station_add(data)
+
+    return redirect(url_for('panel_add_station'))
+
+
 @app.route('/liststation', methods=['GET'])
 def panel_list_station():
     return render_template('new_liststation.html')
+
+
+@app.route('/addline', methods=['GET'])
+def panel_add_line():
+    return render_template('new_addline.html')
+
+@app.route('/addlines', methods=['POST'])
+def panel_add_multiple_line():
+    if 'file' not in request.files:
+        return redirect(url_for('panel_add_line'))
+
+    file = request.files['file']
+    if file.filename == '':
+        return redirect(url_for('panel_add_line'))
+
+    if file and allowed_file(file.filename):
+        file_content = file.stream.read()
+        data = json.loads(file_content)
+        _api_admin_line_add(data)
+
+    return redirect(url_for('panel_add_line'))
 
 
 if __name__ == '__main__':
