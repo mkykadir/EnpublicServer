@@ -31,7 +31,7 @@ $(document).ready(function(){
 
         var nextStation = {
             "name": stationName,
-            "dist": stationDistance
+            "dist": parseFloat(stationDistance)
         };
 
         stations.push(nextStation);

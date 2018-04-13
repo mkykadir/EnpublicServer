@@ -55,6 +55,7 @@ try:
     auth = EnpublicBasicAuth(app)
     graph = Graph(password='7823')  # TODO: Need to get password from ENV variables
 except Exception as ex:
+    print("Check database service or password!")
     print(str(ex))
     exit(1)
 
