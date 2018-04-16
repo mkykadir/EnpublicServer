@@ -1,10 +1,9 @@
 from flask import Flask, jsonify, request, render_template, redirect, url_for, json, send_from_directory
 from flask_basicauth import BasicAuth
-from py2neo import Graph, DatabaseError, GraphError, ConstraintError, ClientError
-import time
-import bcrypt
+from flask_login import LoginManager, current_user, login_user, login_required, logout_user
+from neomodel import config, db
+from data_models import Achievement, User, Vehicle, Station
 import os
-
 
 # TODO: Return proper error messages for API calls
 
@@ -25,19 +24,38 @@ places = graph.data(query, parameters={'name': name})
 """
 
 
+class AdminUser:
+    username = "admin"
+    def is_authenticated(self):
+        return True
+
+    def is_active(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return self.username
+
+    @staticmethod
+    def get_user():
+        return AdminUser()
+
 # Authentication credential check override
 class EnpublicBasicAuth(BasicAuth):
     def check_credentials(self, username, password):
-        query = "MATCH (n:User) WHERE n.username={username} RETURN n.salt AS salt, n.hash AS hash"
         try:
-            user_salt_hash = graph.data(query, parameters={'username': username})
-            salt_value = user_salt_hash[0]['salt']  # Query returns array
-            hash_value = user_salt_hash[0]['hash']  # Query returns array
-            login_value = bcrypt.hashpw(str.encode(password), str.encode(salt_value))
-            if login_value.decode('utf-8') == hash_value:
+            user = User.nodes.get(username=username)
+            test_hash = User.get_hash(user.salt, password)
+            user_hash = user.hash
+
+            if test_hash.decode('utf-8') == user_hash:
                 return True
+
         except Exception as e:
             print(e)
+            print(type(e))
             return False
 
         return False
@@ -45,7 +63,8 @@ class EnpublicBasicAuth(BasicAuth):
 
 app = None
 auth = None
-graph = None
+login_manager = None
+# graph = None
 
 
 try:
@@ -53,11 +72,15 @@ try:
     app.secret_key = 'merhabalar'  # TODO: Need to select good key
     app.config['UPLOAD_FOLDER'] = 'files'
     auth = EnpublicBasicAuth(app)
-    graph = Graph(password='7823')  # TODO: Need to get password from ENV variables
+    config.DATABASE_URL = "bolt://neo4j:7823@localhost:7687"
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    # graph = Graph(password='7823')  # TODO: Need to get password from ENV variables
 except Exception as ex:
     print("Check database service or password!")
     print(str(ex))
     exit(1)
+
 
 # Error Handlers
 
@@ -65,6 +88,16 @@ except Exception as ex:
 @app.errorhandler(401)
 def unauthorized_access():
     return jsonify({'message': 'Unauthorized access, you need an account to access.'}), 401
+
+
+@login_manager.user_loader
+def load_admin(user_id):
+    return AdminUser.get_user()
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return redirect(url_for('admin_login'))
 
 
 # API calls
@@ -113,29 +146,26 @@ uses this call to register new user. This call doesn't work for admin users and 
 def api_signup_user():
     data = request.get_json()
     try:
-        gen_salt_value = bcrypt.gensalt()
-        gen_hash_value = bcrypt.hashpw(str.encode(data['password']), gen_salt_value)
+        input_password = data['password']
+        salt_value, hash_value = User.get_salt_hash(input_password)
 
-        query = "CREATE (n:User {username:{username}, email:{email}, name:{name}, date:{date}, salt:{salt}, " \
-                "hash:{hash}}) "
-        qparameters = {
-            'username': data['username'],
-            'email': data['email'],
-            'name': data['name'],
-            'date': int(round(time.time()*1000)),
-            'salt': gen_salt_value.decode('utf-8'),
-            'hash': gen_hash_value.decode('utf-8')
-        }
-        graph.data(query, parameters=qparameters)
+        new_user = User()
+        new_user.name = data['name']
+        new_user.username = data['username']
+        new_user.email = data['email']
+        new_user.salt = salt_value.decode('utf-8')
+        new_user.hash = hash_value.decode('utf-8')
+
+        new_user.save()
+
         profile_info = {
             'username': data['username'],
             'name': data['name'],
             'email': data['email']
         }
         return jsonify(profile_info)
-    except KeyError:
-        return jsonify({'message': 'Missing required parameters'}), 400
     except Exception as e:
+        print(type(e))
         return jsonify({'message': str(e)}), 500
 
 
@@ -183,14 +213,11 @@ def api_check_user():
 def api_user_profile():
     try:
         auth_username = request.authorization.username
-        query = "MATCH (n:User) WHERE n.username={username} RETURN n.username AS username, n.email AS email, " \
-                "n.name AS name "
-        user_info = graph.data(query, parameters={'username': auth_username})
-        profile = user_info[0]
+        user = User.nodes.get(username=auth_username)
         profile_info = {
-            'username': profile['username'],
-            'name': profile['name'],
-            'email': profile['email']
+            'username': user.username,
+            'name': user.name,
+            'email': user.email
         }
         return jsonify(profile_info)
     except Exception as e:
@@ -203,7 +230,6 @@ def api_user_profile():
 @apiSuccess {String} desc Description of achievement
 @apiSuccess {String} key Identifier for achievement
 """
-
 
 """
 @api {get} /api/achievement Achievements Gained by User
@@ -241,14 +267,18 @@ def api_user_profile():
 @auth.required
 def api_user_achievements():
     try:
+        result = []
         auth_username = request.authorization.username
-        query = "MATCH (n:User {username:{username}})-[b:ACHIEVED]->(a:Achievement) RETURN a.desc AS desc, " \
-                "a.key AS key, b.date AS date "
-        graph_achievements = graph.data(query, parameters={'username': auth_username})
-        achievements = {
-            "result": graph_achievements
-        }
-        return jsonify(achievements)
+        user = User.nodes.get(username=auth_username)
+        for achievement in user.achievements.all():
+            appending = {
+                "key": achievement.key,
+                "description": achievement.description,
+                "req_value": achievement.req_value
+            }
+            result.append(appending)
+
+        return jsonify(result)
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
@@ -280,11 +310,13 @@ def api_user_achievements():
 @app.route('/api/achievement/<achievement_id>', methods=['GET'])
 def api_get_achievement_info(achievement_id):
     try:
-        query = "MATCH (n:Achievement {key: {key}}) RETURN n.desc AS desc, n.key AS key LIMIT 1"
-        result = graph.data(query, parameters={'key': achievement_id})
-        return jsonify(result[0])
-    except (DatabaseError, GraphError, IndexError):
-        return jsonify({'message': 'Item not found'}), 404
+        achievement = Achievement.nodes.get(key=achievement_id)
+        result = {
+            "key": achievement.key,
+            "description": achievement.description,
+            "req_value": achievement.req_value
+        }
+        return jsonify(result)
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
@@ -297,8 +329,9 @@ def api_get_achievement_info(achievement_id):
 @apiGroup Gamification
 @apiDescription Add new achievement to the system
 @apiVersion 1.0.0
-@apiParam {String} desc Description of achievement
+@apiParam {String} description Description of achievement
 @apiParam {String} key Unique identifier for achievement 
+@apiParam {Integer} req_value required limit for achieving
 """
 
 
@@ -307,16 +340,12 @@ def api_get_achievement_info(achievement_id):
 def api_admin_achievement_add():
     data = request.get_json()
     try:
-        query = "CREATE (achievement:Achievement {desc: {desc}, key: {key}, required: {required}})"
-        qparameters = {
-            'desc': data['desc'],
-            'key': data['key'],
-            'required': data['required']
-        }
-        graph.data(query, parameters=qparameters)
-        return jsonify(qparameters)
-    except KeyError:
-        return jsonify({'message': 'Missing required parameters'}), 400
+        new_achievement = Achievement()
+        new_achievement.key = data['key']
+        new_achievement.description = data['description']
+        new_achievement.req_value = data['req_value']
+        new_achievement.save()
+        return jsonify(data)
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
@@ -346,11 +375,13 @@ def api_station_search():
             else:
                 distance = float(distance)
 
-            stations = graph.data(query, parameters={'lat': latitude, 'lon': longitude, 'dist': distance})
+            # graph.data(query, parameters={'lat': latitude, 'lon': longitude, 'dist': distance})
+            stations = db.cypher_query(query=query, params={'lat': latitude, 'lon': longitude, 'dist': distance})
+            stations = stations[0]
             for station in stations:
                 nearby_stations = {
-                    'name': station['name'],
-                    'location': [station['latitude'], station['longitude']]
+                    'name': station[0],
+                    'location': [station[1], station[2]]
                 }
                 retobject.append(nearby_stations)
 
@@ -360,18 +391,16 @@ def api_station_search():
     else:
         # Return stations with similar names
         try:
-            query = "MATCH (n:Station) WHERE n.name=~{name} SET n.searched=n.searched+1 RETURN n.name AS name, " \
-                    "n.latitude AS latitude, n.longitude AS longitude ORDER BY n.name"
+            stations = Station.nodes.filter(name__istartswith=name)
 
             retobject = []
-            regex_name = '(?i)' + name + '.*'
-            stations = graph.data(query, parameters={'name': regex_name})
             for station in stations:
-                found_station = {
-                    'name': station['name'],
-                    'location': [station['latitude'], station['longitude']]
+                found = {
+                    'name': station.name,
+                    'location': [station.latitude, station.longitude]
                 }
-                retobject.append(found_station)
+                retobject.append(found)
+
             return jsonify(retobject)
         except Exception as e:
             return jsonify({'message': str(e)}), 500
@@ -381,44 +410,64 @@ def api_station_search():
 @auth.required
 def api_get_directions():
     # TODO: Needs improvement about walking paths
-    from_station = '(?i)' + request.args.get('from')
-    to_station = '(?i)' + request.args.get('to')
+    # from_station = '(?i)' + request.args.get('from')
+    # to_station = '(?i)' + request.args.get('to')
+
+    from_name = request.args.get('from')
+    to_name = request.args.get('to')
 
     try:
         return_object = []
-        query = "MATCH (from:Station), (to:Station) WHERE from.name=~{from} AND to.name=~{to} SET " \
+        '''query = "MATCH (from:Station), (to:Station) WHERE from.name=~{from} AND to.name=~{to} SET " \
                 "from.directed=from.directed+1 SET to.directed=to.directed+1 WITH from, to MATCH p = " \
                 "allShortestPaths((from)-[:CONNECTS*]-(to)) RETURN p "
 
-        wgraph = graph.data(query, parameters={'from': from_station, 'to': to_station})
+        wgraph = db.cypher_query(query, params={'from': from_station, 'to': to_station})'''
 
-        for wpath in wgraph:
-            inner_object = []
-            walking = wpath['p']
-            node_list = list(walking.nodes())
-            relation_list = list(walking.relationships())
+        from_station = Station.nodes.filter(name__iexact=from_name)[0]
+        to_station = Station.nodes.filter(name__iexact=to_name)[0]
+        from_station.directed += 1
+        to_station.directed += 1
+        from_station.save()
+        to_station.save()
 
+        query = "MATCH p=allShortestPaths((a:Station {name:{from}})-[:CONNECTS*]-(b:Station {name:{to}})) RETURN p"
+        wgraph = db.cypher_query(query, params={'from': from_station.name, 'to': to_station.name})
+
+        for wpath in wgraph[0]:
+            path_info = wpath[0]
+            nodes = path_info.nodes
+            relations = path_info.relationships
+
+            inner_res = {
+                'start': from_station.name,
+                'end': to_station.name
+            }
+            inner_obj = []
             i = 0
-            while i < len(relation_list):
+            while i < len(relations):
                 inner = {
-                    'name': node_list[i]['name'],
-                    'latitude': node_list[i]['latitude'],
-                    'longitude': node_list[i]['longitude'],
+                    'name': nodes[i].properties['name'],
+                    'latitude': nodes[i].properties['latitude'],
+                    'longitude': nodes[i].properties['longitude'],
                     'way': {
-                        'line': relation_list[i]['metro'],
-                        'color': relation_list[i]['color']
+                        'code': relations[i].properties['code'],
+                        'color': relations[i].properties['color']
                     }
                 }
-                inner_object.append(inner)
+                inner_obj.append(inner)
                 i += 1
 
-            last_object = {
-                'name': node_list[i]['name'],
-                'latitude': node_list[i]['latitude'],
-                'longitude': node_list[i]['longitude']
+            last_obj = {
+                'name': nodes[i].properties['name'],
+                'latitude': nodes[i].properties['latitude'],
+                'longitude': nodes[i].properties['longitude']
             }
-            inner_object.append(last_object)
-            return_object.append(inner_object)
+
+            inner_obj.append(last_obj)
+            inner_res['way'] = inner_obj
+            inner_res['vehicles'] = Vehicle.find_different_vehicles(relations)
+            return_object.append(inner_res)
 
         return jsonify(return_object)
     except Exception as e:
@@ -428,22 +477,18 @@ def api_get_directions():
 @app.route('/api/station/stats', methods=['GET'])
 def api_admin_station_stats():
     try:
-        query = "MATCH (n:Station) RETURN n.name AS name, n.latitude AS latitude, n.longitude AS longitude, " \
-                "n.directed AS directed, n.nearby AS nearby, n.searched AS searched, n.visited AS visited ORDER BY " \
-                "n.name "
-
-        stations = graph.data(query)
+        stations = Station.nodes.order_by('name')
         retobject = []
         for station in stations:
             statistics = {
-                'name': station['name'],
-                'latitude': station['latitude'],
-                'longitude': station['longitude'],
+                'name': station.name,
+                'latitude': station.latitude,
+                'longitude': station.longitude,
                 'statistics': {
-                    'directed': station['directed'],
-                    'nearby': station['nearby'],
-                    'searched': station['searched'],
-                    'visited': station['visited']
+                    'directed': station.directed,
+                    'nearby': station.nearby,
+                    'searched': station.searched,
+                    'visited': station.visited
                 }
             }
             retobject.append(statistics)
@@ -455,15 +500,26 @@ def api_admin_station_stats():
 
 @app.route('/api/station/all', methods=['GET'])
 def api_admin_station_all():
-    query = "MATCH(n:Station) RETURN n.name AS name, n.latitude AS latitude, n.longitude AS longitude ORDER " \
-            "BY n.name"
+
+    # query = "MATCH(n:Station) RETURN n.name AS name, n.latitude AS latitude, n.longitude AS longitude ORDER " \
+    #         "BY n.name"
 
     try:
-        stations = graph.data(query)
-        return jsonify(stations)
+        stations = Station.nodes.order_by("name")
+        retobject = []
+        for station in stations:
+            found = {
+                "name": station.name,
+                "latitude": station.latitude,
+                "longitude": station.longitude,
+
+            }
+            retobject.append(found)
+
+        return jsonify(retobject)
     except Exception as e:
         print(type(e))
-        return jsonify({'message': str(e)}),500
+        return jsonify({'message': str(e)}), 500
 
 
 @app.route('/api/station', methods=['POST'])
@@ -480,16 +536,14 @@ def _api_admin_station_add(data):
         i = 0
         last_station = ''
         for station in data:
-            graph.data(query, parameters={'name': station['name'],
-                                          'lat': station['latitude'],
-                                          'lon': station['longitude']})
+            db.cypher_query(query, params={'name': station['name'],
+                                           'lat': station['latitude'],
+                                           'lon': station['longitude']})
             last_station = station['name']
             i += 1
 
         message = "Total {0} stations added, last station added was {1}".format(i, last_station)
         return jsonify({'message': message}), 200
-    except ConstraintError as e:
-        return jsonify({'message': 'Station already exists, details: ' + str(e)}), 406
     except Exception as e:
         print(str(e))
         print(type(e))
@@ -506,7 +560,7 @@ def api_admin_station_delete():
     last_station = ''
     for station in data:
         try:
-            result = graph.data(query, parameters={'name': station})
+            result = db.cypher_query(query, params={'name': station})
             print(result)
             if len(result) == 0:
                 not_deleted += 1
@@ -536,15 +590,20 @@ def api_admin_station_delete():
 def api_admin_station_update():
     data = request.get_json()
 
+    '''
     query = "MATCH (n:Station {name:{oldname}}) SET n.name = {newname}, n.latitude = {latitude}, n.longitude = {" \
             "longitude}"
-
+    '''
     updated = 0
     last_updated = ''
     not_updated = 0
     for station in data:
         try:
-            graph.data(query, parameters=station)
+            to_update = Station.nodes.get(name=station['oldname'])
+            to_update.name = station['newname']
+            to_update.latitude = station['latitude']
+            to_update.longitude = station['longitude']
+            to_update.save()
             last_updated = station['oldname']
             updated += 1
         except Exception as e:
@@ -575,28 +634,30 @@ def api_admin_line_add():
 def _api_admin_line_add(data):
     try:
         stations = data['stations']
+        '''
         query = "MATCH (a:Station {name:{start}}), (b:Station {name:{end}}) CREATE (a)-[rel:CONNECTS {color:{" \
                 "color}, description:{desc}, distance:{dist}, metro:{line}}]->(b)"
-
+        '''
         if len(stations) < 2:
             return jsonify({'message': 'You need to have at least 2 stations'}), 500
 
         i = 0
-        while i+1 < len(stations):
-            params = {
-                'start': stations[i]['name'].title(),
-                'end': stations[i+1]['name'].title(),
+        while i + 1 < len(stations):
+            start_station = Station.nodes.get(name=stations[i]['name'].title())
+            end_station = Station.nodes.get(name=stations[i + 1]['name'].title())
+            rel_param = {
+                'code': data['line'],
                 'color': data['color'],
-                'desc': data['desc'],
-                'dist': stations[i]['dist'],
-                'line': data['line']
+                'description': data['desc'],
+                'distance': data['dist']
             }
-            graph.data(query, parameters=params)
+            start_station.connect(end_station, rel_param).save()
             i += 1
 
         return jsonify({'message': 'Line added'}), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+
 
 # TODO: Line delete and edit
 
@@ -608,15 +669,41 @@ def api_search_station_name():
         name = request.args.get('name') # Get input value from user
 '''
 
+
 # ===END: STATION OPERATIONS===
 
 # Administration GUI calls
 
+@app.route('/login', methods=['GET', 'POST'])
+def admin_login():
+    if current_user.is_authenticated:
+        return redirect(url_for('panel_add_station'))
+
+    if request.method == 'GET':
+        return render_template('login.html')
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        if username == 'admin' and password == '7823':  # encrypt this part
+            login_user(AdminUser.get_user())
+            return redirect(url_for('panel_add_station'))
+        else:
+            return redirect(url_for('admin_login'))
+
+
+@app.route('/logout', methods=['GET'])
+def admin_logout():
+    logout_user()
+    return redirect(url_for('admin_login'))
+
 
 @app.route('/samples/<samplename>', methods=['GET'])
+@login_required
 def get_sample_file(samplename):
     uploads = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
-    return send_from_directory(directory=uploads, filename=samplename+'.json', as_attachment=True)
+    return send_from_directory(directory=uploads, filename=samplename + '.json', as_attachment=True)
 
 
 def allowed_file(filename):
@@ -629,11 +716,13 @@ def allowed_file(filename):
 
 
 @app.route('/addstation', methods=['GET'])
+@login_required
 def panel_add_station():
     return render_template('new_addstation.html')
 
 
 @app.route('/addstations', methods=['POST'])
+@login_required
 def panel_add_multiple_station():
     if 'file' not in request.files:
         return redirect(url_for('panel_add_station'))
@@ -651,15 +740,19 @@ def panel_add_multiple_station():
 
 
 @app.route('/liststation', methods=['GET'])
+@login_required
 def panel_list_station():
     return render_template('new_liststation.html')
 
 
 @app.route('/addline', methods=['GET'])
+@login_required
 def panel_add_line():
     return render_template('new_addline.html')
 
+
 @app.route('/addlines', methods=['POST'])
+@login_required
 def panel_add_multiple_line():
     if 'file' not in request.files:
         return redirect(url_for('panel_add_line'))

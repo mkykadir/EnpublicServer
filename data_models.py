@@ -26,20 +26,41 @@ class User(StructuredNode):
     @staticmethod
     def get_salt_hash(password_text):
         salt_value = bcrypt.gensalt()
-        hash_value = bcrypt.hashpw(str.encode(password_text), salt_value)
+        hash_value = bcrypt.hashpw(str.encode(password_text), str.encode(salt_value))
         return salt_value, hash_value
 
+    @staticmethod
+    def get_hash(salt_value, password_text):
+        return bcrypt.hashpw(str.encode(password_text), str.encode(salt_value))
+
+
 class Vehicle(StructuredRel):
-    code = StringProperty(unique_index=True, required=True)
+    code = StringProperty(required=True)
     color = StringProperty(default="000000")
     description = StringProperty()
-    distance = FloatProperty(required=True, default=1.0)
+    distance = FloatProperty(default=1.0)
+
+    @staticmethod
+    def find_different_vehicles(relations):
+        return_info = ''
+        last_line = ''
+        for relation in relations:
+            current_line = relation.properties['code']
+            if last_line != current_line:
+                last_line = current_line + ' - '
+                return_info += last_line
+
+        if len(return_info) > 0:
+            return return_info[0:len(return_info)-3]
+        else:
+            return ''
 
 
 class Station(StructuredNode):
     name = StringProperty(unique_index=True, required=True)
     latitude = FloatProperty(required=True)
     longitude = FloatProperty(required=True)
+    directed = IntegerProperty(required=True)
     nearby = IntegerProperty(default=0)
     searched = IntegerProperty(default=0)
     visited = IntegerProperty(default=0)
