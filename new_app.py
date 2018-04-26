@@ -708,6 +708,10 @@ def api_search_station_name():
 # ===END: STATION OPERATIONS===
 
 # Administration GUI calls
+@app.route('/')
+def initial_address():
+    return redirect(url_for('admin_login'))
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def admin_login():
