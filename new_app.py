@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, render_template, redirect, url_for, j
 from flask_basicauth import BasicAuth
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from neomodel import config, db
-from data_models import Achievement, User, Vehicle, Station
+from data_models import Achievement, User, Vehicle, Station, Transition, Location, Activity
 import os
 
 # TODO: Return proper error messages for API calls
@@ -26,6 +26,7 @@ places = graph.data(query, parameters={'name': name})
 
 class AdminUser:
     username = "admin"
+    
     def is_authenticated(self):
         return True
 
@@ -41,6 +42,7 @@ class AdminUser:
     @staticmethod
     def get_user():
         return AdminUser()
+
 
 # Authentication credential check override
 class EnpublicBasicAuth(BasicAuth):
@@ -64,18 +66,19 @@ class EnpublicBasicAuth(BasicAuth):
 app = None
 auth = None
 login_manager = None
-# graph = None
 
 
 try:
+    secret_key = os.environ('ENPUBLIC_SECRET')
+    db_url = os.environ['ENPUBLIC_DB_URL']
+
     app = Flask(__name__)
-    app.secret_key = 'merhabalar'  # TODO: Need to select good key
+    app.secret_key = secret_key  # 'merhabalar'
     app.config['UPLOAD_FOLDER'] = 'files'
     auth = EnpublicBasicAuth(app)
-    config.DATABASE_URL = "bolt://neo4j:7823@localhost:7687"
+    config.DATABASE_URL = db_url  # "bolt://neo4j:7823@localhost:7687"
     login_manager = LoginManager()
     login_manager.init_app(app)
-    # graph = Graph(password='7823')  # TODO: Need to get password from ENV variables
 except Exception as ex:
     print("Check database service or password!")
     print(str(ex))
@@ -222,6 +225,38 @@ def api_user_profile():
         return jsonify(profile_info)
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+
+
+@app.route('/api/profile/activity', methods=['POST'])
+@auth.required
+def api_user_activities():
+    data = request.get_json()
+
+    try:
+        transitions = data["transitions"]
+        locations = data["locations"]
+
+        trans_array = []
+        loc_array = []
+        for transition in transitions:
+            trans_array.append(Transition(transition["activityType"], transition["transitionType"],
+                                          transition["timestamp"]))
+
+        for loc in locations:
+            loc_array.append(Location(loc["latitude"], loc["longitude"], loc["timestamp"], loc["speed"],
+                                      loc["accuracy"]))
+
+        activities = Activity.transitions_to_activity(trans_array)
+        merged_activities = Activity.merge_nears(activities)
+        located_activities = Activity.add_locations(merged_activities, loc_array)
+        # TODO: debug located_activities and work on algorithm for calculating busses
+        # TODO: return gained achievements
+        return jsonify({"result": 200})
+
+    except Exception as e:
+        print(type(e))
+        print(e)
+        return jsonify({"result": 500})
 
 
 """
