@@ -69,7 +69,7 @@ login_manager = None
 
 
 try:
-    secret_key = os.environ('ENPUBLIC_SECRET')
+    secret_key = os.environ['ENPUBLIC_SECRET']
     db_url = os.environ['ENPUBLIC_DB_URL']
 
     app = Flask(__name__)
