@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Manage Stations{% endblock %}
+{% block content %}
+
+<div>
+    <h3>Add Stations</h3>
+    <p>Provide CSV file's link to add station(s). <a href="{{ url_for('panel.panel_get_sample_file', sample_name='stations') }}">Click here</a> to get sample file.</p>
+    <p>File has to be encoded in UTF-8 format!</p>
+    <form enctype="multipart/form-data" role="form" method="post" name="add_multiple_stations" action="{{ url_for('panel.panel_add_stations_from_csv') }}">
+        <input type="text" class="form-control" id="inputStationsFile" name="file_link" placeholder="http://...">
+        <br>
+        <button type="submit" class="btn btn-success">Add</button>
+    </form>
+</div>
+    <hr>
+<div>
+    <h3>Manage Stations</h3>
+    <table class="table" id="table-stations">
+        <thead>
+            <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Name</th>
+                <th scope="col">Location (Lat-Lng)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for station in stations %}
+                <tr>
+                    <td><a href="{{ url_for('panel.panel_station_details', station_code=station.short) }}">{{ station.short }}</a></td>
+                    <td>{{ station.name }}</td>
+                    <td>
+                        <a href="https://www.google.com/maps/?q={{ station.latitude }},{{ station.longitude }}">
+                            {{ station.latitude }},{{ station.longitude }}
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ station.name }}{% endblock %}
+{% block content %}
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCVPwoYkecvKxOk839TGmIBKetTqaiQ-3I&callback=initMap">
+</script>
+    <script>
+    function initMap() {
+        var uluru = {lat: {{ station.latitude }}, lng: {{ station.longitude }} };
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 17,
+          center: uluru
+        });
+        var marker = new google.maps.Marker({
+          position: uluru,
+          map: map
+        });
+      }
+    </script>
+<div>
+    <h3>{{ station.name }}</h3>
+    <div id="map" style="height: 200px; width: 100%;"></div>
+    <p>Fill following form to update parameters of station</p>
+    <form role="form" method="post" name="update_station_information" action="{{ url_for('panel.panel_update_station', station_code=station.short) }}">
+        <label for="short">Code</label>
+        <input type="text" name="short" value="{{ station.short }}" class="form-control" required>
+        <br>
+        <label for="name">Name</label>
+        <input type="text" name="name" value="{{ station.name }}" class="form-control" required>
+        <br>
+        <label for="latitude">Latitude</label>
+        <input type="text" name="latitude" value="{{ station.latitude }}" class="form-control" required>
+        <br>
+        <label for="longitude">Longitude</label>
+        <input type="text" name="longitude" value="{{ station.longitude }}" class="form-control" required>
+        <br>
+        <button type="submit" class="btn btn-warning">Update</button>
+        <a href="{{ url_for('panel.panel_delete_station', station_code=station.short) }}" class="btn btn-danger">Delete</a>
+    </form>
+</div>
+    <hr>
+<div>
+    <h3>Vehicles Passes</h3>
+    <table class="table" id="table-vehicles">
+        <thead>
+            <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Description</th>
+                <th scope="col">Color</th>
+                <th scope="col">Operations</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vehicle in vehicles %}
+            <tr>
+                <td><a href="{{ url_for('panel.panel_vehicle_details', vehicle_code=vehicle.code) }}">{{ vehicle.code }}</a></td>
+                <td>{{ vehicle.description }}</td>
+                <td style="background-color: #{{ vehicle.color }}"> </td>
+                <td><a class="btn btn-danger" href="{{ url_for('panel.panel_delete_station_relation', station_code=station.short, vehicle_code=vehicle.code) }}">Delete</a></td>
+            </tr>
+            {% endfor %}
+            <!--
+            <tr>
+                <td><a href="#">PENLIS</a></td>
+                <td>Pendik Lisesi</td>
+                <td><a href="#">44.93,12.23</a></td>
+                <td>2</td>
+                <td><a class="btn btn-danger" href="#">Delete</a></td>
+            </tr>
+            -->
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,95 +1,46 @@
 [
   {
-    "type": "get",
-    "url": "/api/achievement/:key",
-    "title": "Get Achievement Details",
-    "name": "AchievementDetails",
-    "group": "Gamification",
-    "description": "<p>Get detailed information of achievement identified by key value</p>",
-    "version": "1.0.0",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": false,
-            "field": "key",
-            "description": "<p>Unique ID of achievement, key value</p>"
-          }
-        ]
-      }
-    },
     "success": {
-      "examples": [
-        {
-          "title": "Success-Response",
-          "content": "HTTP/1.1 200 OK\n{\n    \"date\": 1519208927000,\n    \"desc\": \"Achievement description\",\n    \"key\": \"achv-key\"\n}",
-          "type": "json"
-        }
-      ],
       "fields": {
         "Success 200": [
           {
             "group": "Success 200",
-            "type": "Date",
             "optional": false,
-            "field": "date",
-            "description": "<p>Date of achievement gain</p>"
+            "field": "varname1",
+            "description": "<p>No type.</p>"
           },
           {
             "group": "Success 200",
             "type": "String",
             "optional": false,
-            "field": "desc",
-            "description": "<p>Description of achievement</p>"
-          },
-          {
-            "group": "Success 200",
-            "type": "String",
-            "optional": false,
-            "field": "key",
-            "description": "<p>Identifier for achievement</p>"
+            "field": "varname2",
+            "description": "<p>With type.</p>"
           }
         ]
       }
     },
-    "error": {
-      "fields": {
-        "Error 4xx": [
-          {
-            "group": "Error 4xx",
-            "optional": false,
-            "field": "ServerErrors",
-            "description": "<p>Error description will be returned in message</p>"
-          }
-        ]
-      },
-      "examples": [
-        {
-          "title": "Error-Response:",
-          "content": "HTTP/1.1 500 Server Error\n{\n    \"message\": \"Error detail and explanation message\"\n}",
-          "type": "json"
-        }
-      ]
-    },
-    "filename": "./new_app.py",
-    "groupTitle": "Gamification"
+    "type": "",
+    "url": "",
+    "version": "0.0.0",
+    "filename": "./apidoc/main.js",
+    "group": "C__Users_mkyka_Documents_Enpublic_Server_source_apidoc_main_js",
+    "groupTitle": "C__Users_mkyka_Documents_Enpublic_Server_source_apidoc_main_js",
+    "name": ""
   },
   {
-    "type": "post",
-    "url": "/api/achievement",
-    "title": "Add New Achievement",
-    "name": "AddAchievement",
+    "type": "get",
+    "url": "/station/direct?from:=station_id?to:=station_id",
+    "title": "Get Directions",
+    "name": "GetDirections",
     "permission": [
       {
-        "name": "adminperm",
-        "title": "Admin Permission Required",
-        "description": "<p>This call designed and developed for management console and only intended for admin use only from managemenet console.</p>"
+        "name": "user",
+        "title": "User Permission",
+        "description": "<p>This call requires normal user permissions</p>"
       }
     ],
-    "group": "Gamification",
-    "description": "<p>Add new achievement to the system</p>",
+    "group": "Station",
+    "description": "<p>Get directions from a station to a destination station</p>",
     "version": "1.0.0",
     "parameter": {
       "fields": {
@@ -98,101 +49,35 @@
             "group": "Parameter",
             "type": "String",
             "optional": false,
-            "field": "desc",
-            "description": "<p>Description of achievement</p>"
+            "field": "from",
+            "description": "<p>Station identifier for starting station</p>"
           },
           {
             "group": "Parameter",
             "type": "String",
             "optional": false,
-            "field": "key",
-            "description": "<p>Unique identifier for achievement</p>"
+            "field": "to",
+            "description": "<p>Station identifier for destionation station</p>"
           }
         ]
       }
-    },
-    "filename": "./new_app.py",
-    "groupTitle": "Gamification"
-  },
-  {
-    "type": "post",
-    "url": "/api/signup",
-    "title": "Register User",
-    "name": "RegisterUser",
-    "group": "User",
-    "description": "<p>Register new client user to the system. Android client users and Android client application uses this call to register new user. This call doesn't work for admin users and management panel.</p>",
-    "version": "1.0.0",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": false,
-            "field": "username",
-            "description": "<p>Username of the user</p>"
-          },
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": false,
-            "field": "password",
-            "description": "<p>Password of the user</p>"
-          },
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": false,
-            "field": "name",
-            "description": "<p>Full real name of the user</p>"
-          },
-          {
-            "group": "Parameter",
-            "type": "String",
-            "optional": false,
-            "field": "email",
-            "description": "<p>E-Mail address of the user</p>"
-          }
-        ]
-      },
-      "examples": [
-        {
-          "title": "Example usage:",
-          "content": "{\n    \"username\": \"user\",\n    \"password\": \"pass\",\n    \"name\": \"User Name\",\n    \"email\": \"user@provider.com\"\n}",
-          "type": "json"
-        }
-      ]
     },
     "success": {
       "fields": {
         "Success 200": [
           {
             "group": "Success 200",
-            "type": "String",
+            "type": "directResult[]",
             "optional": false,
-            "field": "username",
-            "description": "<p>Username of the user</p>"
-          },
-          {
-            "group": "Success 200",
-            "type": "String",
-            "optional": false,
-            "field": "name",
-            "description": "<p>Full real name of the user</p>"
-          },
-          {
-            "group": "Success 200",
-            "type": "String",
-            "optional": false,
-            "field": "email",
-            "description": "<p>E-Mail address of the user</p>"
+            "field": "List",
+            "description": "<p>of result route suggestions</p>"
           }
         ]
       },
       "examples": [
         {
           "title": "Success-Response:",
-          "content": "HTTP/1.1 200 OK\n{\n    \"username\": \"user\",\n    \"name\": \"User Name\",\n    \"email\": \"user@provider.com\"\n}",
+          "content": "HTTP/1.1 200 OK\n[\n    [\n        {\n            \"name\": \"Station1\",\n            \"latitude\": 40.123,\n            \"longitude\": 20.123,\n            \"next\": {\n                \"code\": \"123K\",\n                \"color\": \"ffffff\"\n            }\n        },\n        {\n            \"name\": \"Station2\",\n            \"latitude\": 41.123,\n            \"longitude\": 21.123,\n            \"next\": null\n        }   \n    ]\n]",
           "type": "json"
         }
       ]
@@ -216,81 +101,67 @@
         }
       ]
     },
-    "filename": "./new_app.py",
-    "groupTitle": "User"
+    "filename": "./api/api.py",
+    "groupTitle": "Station"
   },
   {
     "type": "get",
-    "url": "/api/achievement",
-    "title": "Achievements Gained by User",
-    "name": "UserAchievements",
+    "url": "/station?lat:=latitude?lon:=longitude?dist:=distance",
+    "title": "Get Nearby Stations by Location",
+    "name": "GetNearbyStations",
     "permission": [
       {
-        "name": "userperm",
-        "title": "User Permission Required",
-        "description": "<p>This call requires user permissions to work, users' credentials should be passed through header with BasicAuth.</p>"
+        "name": "user",
+        "title": "User Permission",
+        "description": "<p>This call requires normal user permissions</p>"
       }
     ],
-    "group": "User",
-    "description": "<p>Get list of achievement that were gained by user during usage of system</p>",
+    "group": "Station",
+    "description": "<p>Get nearby stations by location, this call will return results for nearby stations</p>",
     "version": "1.0.0",
-    "header": {
+    "parameter": {
       "fields": {
-        "Header": [
+        "Parameter": [
           {
-            "group": "Header",
-            "type": "String",
+            "group": "Parameter",
+            "type": "Number",
             "optional": false,
-            "field": "authorization",
-            "description": "<p>BasicAuth value of username and password pair</p>"
+            "field": "lat",
+            "description": "<p>Latitude of location to search, required</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "lon",
+            "description": "<p>Longitude of location to search, required</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Number",
+            "optional": false,
+            "field": "dist",
+            "description": "<p>Distance in km's to search within, optional variable</p>"
           }
         ]
-      },
-      "examples": [
-        {
-          "title": "BasicAuth-Example",
-          "content": "Basic dXNlcjpwYXNz",
-          "type": "String"
-        }
-      ]
+      }
     },
     "success": {
       "fields": {
         "Success 200": [
           {
             "group": "Success 200",
-            "type": "achivementObject[]",
+            "type": "stationObject[]",
             "optional": false,
-            "field": "result",
-            "description": "<p>List of achievements</p>"
-          },
-          {
-            "group": "Success 200",
-            "type": "Date",
-            "optional": false,
-            "field": "date",
-            "description": "<p>Date of achievement gain</p>"
-          },
-          {
-            "group": "Success 200",
-            "type": "String",
-            "optional": false,
-            "field": "desc",
-            "description": "<p>Description of achievement</p>"
-          },
-          {
-            "group": "Success 200",
-            "type": "String",
-            "optional": false,
-            "field": "key",
-            "description": "<p>Identifier for achievement</p>"
+            "field": "List",
+            "description": "<p>of stations</p>"
           }
         ]
       },
       "examples": [
         {
           "title": "Success-Response:",
-          "content": "HTTP/1.1 200 OK\n{\n    \"result\": [\n        {\n            \"date\": 1519208927000,\n            \"desc\": \"Achievement description\",\n            \"key\": \"achv-key\"\n        }\n    ]\n}",
+          "content": "HTTP/1.1 200 OK\n[\n    {\n        \"name\": \"Station1\",\n        \"latitude\": 40.123,\n        \"longitude\": 20.123\n    }\n]",
           "type": "json"
         }
       ]
@@ -301,7 +172,7 @@
           {
             "group": "Error 4xx",
             "optional": false,
-            "field": "ServerErrors",
+            "field": "AllErrors",
             "description": "<p>Error description will be returned in message</p>"
           }
         ]
@@ -314,41 +185,118 @@
         }
       ]
     },
-    "filename": "./new_app.py",
-    "groupTitle": "User"
+    "filename": "./api/api.py",
+    "groupTitle": "Station"
   },
   {
     "type": "get",
-    "url": "/api/profile",
-    "title": "Profile Information of User",
-    "name": "UserProfile",
+    "url": "/station?name",
+    "title": "Get Stations by Name",
+    "name": "GetStations",
+    "group": "Station",
     "permission": [
       {
-        "name": "userperm",
-        "title": "User Permission Required",
-        "description": "<p>This call requires user permissions to work, users' credentials should be passed through header with BasicAuth.</p>"
+        "name": "user",
+        "title": "User Permission",
+        "description": "<p>This call requires normal user permissions</p>"
       }
     ],
-    "group": "User",
-    "description": "<p>Get profile information of the user. Android client uses this call to show users' profile.</p>",
+    "description": "<p>Get stations by name, this call will return results for stations' name starting with input variable</p>",
     "version": "1.0.0",
-    "header": {
+    "parameter": {
       "fields": {
-        "Header": [
+        "Parameter": [
           {
-            "group": "Header",
+            "group": "Parameter",
             "type": "String",
             "optional": false,
-            "field": "authorization",
-            "description": "<p>BasicAuth value of username and password pair</p>"
+            "field": "name",
+            "description": "<p>Name to search in stations</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "stationObject[]",
+            "optional": false,
+            "field": "List",
+            "description": "<p>of stations</p>"
           }
         ]
       },
       "examples": [
         {
-          "title": "BasicAuth-Example",
-          "content": "Basic dXNlcjpwYXNz",
-          "type": "String"
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n[\n    {\n        \"name\": \"Station1\",\n        \"latitude\": 40.123,\n        \"longitude\": 20.123\n    }\n]",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "fields": {
+        "Error 4xx": [
+          {
+            "group": "Error 4xx",
+            "optional": false,
+            "field": "AllErrors",
+            "description": "<p>Error description will be returned in message</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Error-Response:",
+          "content": "HTTP/1.1 500 Server Error\n{\n    \"message\": \"Error detail and explanation message\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "./api/api.py",
+    "groupTitle": "Station"
+  },
+  {
+    "type": "post",
+    "url": "/signup",
+    "title": "Register New User",
+    "name": "RegisterUser",
+    "group": "User",
+    "description": "<p>Register new client user. Android application registers users from this call. You cannot register users for admin panel through this call.</p>",
+    "version": "1.0.0",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "email",
+            "description": "<p>Email address</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "password",
+            "description": "<p>Password for login</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": "full_name",
+            "description": "<p>Full real name of user</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Example parameters to send:",
+          "content": "{\n    \"email\": \"address@email.com\",\n    \"password\": \"pass\",\n    \"full_name\" \"User Name\"\n}",
+          "type": "json"
         }
       ]
     },
@@ -359,29 +307,22 @@
             "group": "Success 200",
             "type": "String",
             "optional": false,
-            "field": "username",
-            "description": "<p>Username of the user</p>"
+            "field": "email",
+            "description": "<p>Email address of registered user</p>"
           },
           {
             "group": "Success 200",
             "type": "String",
             "optional": false,
             "field": "name",
-            "description": "<p>Full real name of the user</p>"
-          },
-          {
-            "group": "Success 200",
-            "type": "String",
-            "optional": false,
-            "field": "email",
-            "description": "<p>E-Mail address of the user</p>"
+            "description": "<p>Full real name of registered user</p>"
           }
         ]
       },
       "examples": [
         {
           "title": "Success-Response:",
-          "content": "HTTP/1.1 200 OK\n{\n    \"username\": \"user\",\n    \"name\": \"User Name\",\n    \"email\": \"user@provider.com\"\n}",
+          "content": "HTTP/1.1 200 OK\n{\n    \"email\": \"address@email.com\",\n    \"name\": \"User Name\"\n}",
           "type": "json"
         }
       ]
@@ -392,7 +333,7 @@
           {
             "group": "Error 4xx",
             "optional": false,
-            "field": "ServerErrors",
+            "field": "AllErrors",
             "description": "<p>Error description will be returned in message</p>"
           }
         ]
@@ -405,7 +346,144 @@
         }
       ]
     },
-    "filename": "./new_app.py",
+    "filename": "./api/api.py",
+    "groupTitle": "User"
+  },
+  {
+    "type": "get",
+    "url": "/achievement",
+    "title": "Achievements Gained by User",
+    "name": "UserAchievements",
+    "group": "User",
+    "permission": [
+      {
+        "name": "user",
+        "title": "User Permission",
+        "description": "<p>This call requires normal user permissions</p>"
+      }
+    ],
+    "description": "<p>Returns a list of achievements gained by logged-in user.</p>",
+    "version": "1.0.0",
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "authorization",
+            "description": "<p>BasicAuth value of email and password</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Basic YWRkcmVzc0BtYWlsLmNvbToxMjM=",
+          "content": "Basic YWRkcmVzc0BtYWlsLmNvbToxMjM=",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "achievementObject[]",
+            "optional": false,
+            "field": "List",
+            "description": "<p>of achievements</p>"
+          },
+          {
+            "group": "Success 200",
+            "type": "String",
+            "optional": false,
+            "field": "name",
+            "description": "<p>Identifier of achievement object</p>"
+          },
+          {
+            "group": "Success 200",
+            "type": "String",
+            "optional": false,
+            "field": "description",
+            "description": "<p>Description message of achievement</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n[\n    {\n        \"name\": \"achievementid\",\n        \"description\": \"Best achievement ever!\"\n    }\n]",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "./api/api.py",
+    "groupTitle": "User"
+  },
+  {
+    "type": "get",
+    "url": "/profile",
+    "title": "Profile Information of Logged in User",
+    "name": "UserProfile",
+    "group": "User",
+    "permission": [
+      {
+        "name": "user",
+        "title": "User Permission",
+        "description": "<p>This call requires normal user permissions</p>"
+      }
+    ],
+    "description": "<p>Get profile information of currently logged in user. Android client uses that call to check if user credentials are correct.</p>",
+    "version": "1.0.0",
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "authorization",
+            "description": "<p>BasicAuth value of email and password of user</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "BasicAuth-Example",
+          "content": "Basic YWRkcmVzc0BtYWlsLmNvbToxMjM=",
+          "type": "String"
+        }
+      ]
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "String",
+            "optional": false,
+            "field": "email",
+            "description": "<p>Email address of user</p>"
+          },
+          {
+            "group": "Success 200",
+            "type": "String",
+            "optional": false,
+            "field": "name",
+            "description": "<p>Full real name of user</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n{\n    \"email\": \"address@email.com\",\n    \"name\": \"User Name\"\n]",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "./api/api.py",
     "groupTitle": "User"
   }
 ]

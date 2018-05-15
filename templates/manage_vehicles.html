@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Manage Vehicles{% endblock %}
+{% block content %}
+<div>
+    <h3>Add Vehicles</h3>
+    <p>Provide CSV file's link to add vehicle(s). <a href="{{ url_for('panel.panel_get_sample_file', sample_name='vehicles') }}">Click here</a> to get sample file.</p>
+    <p>File has to be encoded in UTF-8 format!</p>
+    <form enctype="multipart/form-data" role="form" method="post" name="add_multiple_vehicles" action="{{ url_for('panel.panel_add_vehicles_from_csv') }}">
+        <input type="text" class="form-control" id="inputVehiclesFile" name="file_link" placeholder="http://...">
+        <br>
+        <button type="submit" class="btn btn-success">Add</button>
+    </form>
+</div>
+    <hr>
+<div>
+    <h3>Manage Vehicles</h3>
+    <table class="table" id="table-vehicles">
+        <thead>
+            <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Description</th>
+                <th scope="col">Color</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vehicle in vehicles %}
+                <tr>
+                    <td><a href="{{ url_for('panel.panel_vehicle_details', vehicle_code=vehicle.code) }}">{{ vehicle.code }}</a></td>
+                    <td>{{ vehicle.description }}</td>
+                    <td style="background-color: #{{ vehicle.color }};"> </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

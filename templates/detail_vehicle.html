@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ vehicle.code }}{% endblock %}
+{% block content %}
+<script>
+window.onload = function() {
+    let canvas = document.getElementById("canvas");
+    drawCheckeredBackground(canvas);
+};
+
+function drawCheckeredBackground(can, nRow, nCol) {
+    let ctx = can.getContext("2d");
+    let w = can.width;
+    let h = can.height;
+
+    nRow = nRow || 2;    // default number of rows
+    nCol = nCol || 35;    // default number of columns
+
+    w /= nCol;            // width of a block
+    h /= nRow;            // height of a block
+
+    for (let i = 0; i < nRow; ++i) {
+        for (let j = 0, col = nCol / 2; j < col; ++j) {
+            ctx.rect(2 * j * w + (i % 2 ? 0 : w), i * h, w, h);
+        }
+    }
+    ctx.fillStyle = "#{{ vehicle.color }}";
+    ctx.fill();
+}
+
+
+</script>
+
+<div>
+    <h3>{{ vehicle.code }}</h3>
+    <canvas id="canvas" width="500" height="30"></canvas>
+    <br>
+    <p>Fill following form to update parameters of vehicle</p>
+    <form role="form" method="post" name="update_vehicle_information" action="{{ url_for('panel.panel_update_vehicle', vehicle_code=vehicle.code) }}">
+        <label for="code">Code</label>
+        <input type="text" name="code" value="{{ vehicle.code }}" class="form-control" required>
+        <br>
+        <label for="description">Description</label>
+        <input type="text" name="description" value="{{ vehicle.description }}" class="form-control" required>
+        <br>
+        <label for="color">Color</label>
+        <input type="color" name="color" value="#{{ vehicle.color }}" required>
+        <br>
+        <button type="submit" class="btn btn-warning">Update</button>
+        <a href="{{ url_for('panel.panel_delete_vehicle', vehicle_code=vehicle.code) }}" class="btn btn-danger">Delete</a>
+    </form>
+</div>
+    <hr>
+<div>
+    <h3>Add Station to Vehicle</h3>
+    <p>Provide CSV file's link to add station(s) to this vehicle. <a href="{{ url_for('panel.panel_get_sample_file', sample_name='fr') }}">Click here</a> to get sample file.</p>
+    <p>File has to be encoded in UTF-8 format!</p>
+    <form role="form" method="post" name="add_multiple_relations" action="{{ url_for('panel.panel_add_relations_from_csv', vehicle_code=vehicle.code) }}">
+        <input type="text" class="form-control" id="inputRelationsFile" name="file_link" placeholder="http://...">
+        <br>
+        <button type="submit" class="btn btn-success">Add</button>
+    </form>
+</div>
+    <hr>
+<div>
+    <h3>Stations of Vehicle</h3>
+    <table class="table" id="table-stations">
+        <thead>
+            <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Name</th>
+                <th scope="col">Location</th>
+                <th scope="col">Distance</th>
+                <th scope="col">Operations</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for station in stations %}
+            <tr>
+                <td><a href="#">{{ station.short }}</a></td>
+                <td>{{ station.name }}</td>
+                <td>
+                    <a href="https://www.google.com/maps/?q={{ station.latitude }},{{ station.longitude }}">
+                        {{ station.latitude }},{{ station.longitude }}
+                    </a>
+                </td>
+                <td>2</td>
+                <td><a class="btn btn-danger" href="{{ url_for('panel.panel_delete_vehicle_relation', vehicle_code=vehicle.code, station_code=station.short) }}">Delete</a></td>
+            </tr>
+            {% endfor %}
+            <!--
+            <tr>
+                <td><a href="#">PENLIS</a></td>
+                <td>Pendik Lisesi</td>
+                <td><a href="#">44.93,12.23</a></td>
+                <td>2</td>
+                <td><a class="btn btn-danger" href="#">Delete</a></td>
+            </tr>
+            -->
+        </tbody>
+    </table>
+</div>
+{% endblock %}
