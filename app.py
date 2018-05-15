@@ -33,7 +33,7 @@ app.register_blueprint(panel)
 user_db.init_app(app)
 security.init_app(app, user_datastore, register_form=ExtRegisterForm)
 
-
+'''
 @app.before_first_request
 def create_system():
     # Create first user
@@ -49,6 +49,7 @@ def create_system():
 @app.errorhandler(401)
 def unauthorized_access():
     return jsonify({'message': 'Unauthorized access, you need an account to access.'}), 401
+'''
 
 
 @app.route('/', methods=['GET'])
