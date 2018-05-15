@@ -3,6 +3,7 @@ from flask import Flask, redirect, url_for, render_template, jsonify
 from flask_security import current_user
 from forms import ExtRegisterForm
 from extensions import user_db, user_datastore, security
+import utils
 
 
 # Blueprints
@@ -32,18 +33,17 @@ app.register_blueprint(panel)
 user_db.init_app(app)
 security.init_app(app, user_datastore, register_form=ExtRegisterForm)
 
-'''
+
 @app.before_first_request
 def create_system():
     # Create first user
     utils.create_admin_user()
 
     # Create Neo database
-    # utils.create_neo_db()
+    utils.create_neo_db()
 
     # Create Achievements
     utils.create_achievements()
-'''
 
 
 @app.errorhandler(401)
