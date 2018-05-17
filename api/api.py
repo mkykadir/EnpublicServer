@@ -236,11 +236,11 @@ def api_station():
             distance = request.args.get('dist')
 
             if distance is None:
-                distance = float(1)
+                distance = 0.05
             else:
                 distance = float(distance)
 
-            stations = neo_db.cypher_query(query=query, params={'lat':latitude, 'lon':longitude, 'dist':distance})
+            stations = neo_db.cypher_query(query=query, params={'lat': latitude, 'lon': longitude, 'dist': distance})
             stations = stations[0]
             for station in stations:
                 nearby_stations = {
@@ -261,7 +261,7 @@ def api_station():
             ret_object = []
             for station in stations:
                 found = {
-                    'shortn': station.shor,
+                    'shortn': station.short,
                     'name': station.name,
                     'latitude': station.latitude,
                     'longitude': station.longitude
