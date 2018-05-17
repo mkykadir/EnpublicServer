@@ -176,6 +176,7 @@ def api_user_achievements():
     HTTP/1.1 200 OK
     [
         {
+            "shortn": "STATI",
             "name": "Station1",
             "latitude": 40.123,
             "longitude": 20.123
@@ -204,6 +205,7 @@ def api_user_achievements():
     HTTP/1.1 200 OK
     [
         {
+            "shortn": "STATI",
             "name": "Station1",
             "latitude": 40.123,
             "longitude": 20.123
@@ -226,7 +228,7 @@ def api_station():
         ret_object = []
         query = "CALL spatial.closest('spati', {latitude: {lat}, longitude: {lon}}, {dist}) YIELD node AS result SET " \
                 "result.nearby=result.nearby+1 RETURN result.name AS name, result.latitude AS latitude, " \
-                "result.longitude AS longitude "
+                "result.longitude AS longitude, result.short AS shortn "
 
         try:
             latitude = float(request.args.get('lat'))
@@ -241,10 +243,11 @@ def api_station():
             stations = neo_db.cypher_query(query=query, params={'lat':latitude, 'lon':longitude, 'dist':distance})
             stations = stations[0]
             for station in stations:
-                nearby_stations = { # TODO check this dictionary
+                nearby_stations = {
                     'name': station[0],
                     'latitude': station[1],
-                    'longitude': station[0]
+                    'longitude': station[2],
+                    'shortn': station[3]
                 }
                 ret_object.append(nearby_stations)
 
@@ -258,6 +261,7 @@ def api_station():
             ret_object = []
             for station in stations:
                 found = {
+                    'shortn': station.shor,
                     'name': station.name,
                     'latitude': station.latitude,
                     'longitude': station.longitude
@@ -305,6 +309,7 @@ def api_station():
     [
         [
             {
+                "shortn": "STATI",
                 "name": "Station1",
                 "latitude": 40.123,
                 "longitude": 20.123,
@@ -314,6 +319,7 @@ def api_station():
                 }
             },
             {
+                "shortn": "STATI2",
                 "name": "Station2",
                 "latitude": 41.123,
                 "longitude": 21.123,
@@ -365,6 +371,7 @@ def api_station_directions():
                 station_code = stations[iterator]
                 if station_code is not None:
                     station = Station.nodes.get(short=station_code)
+                    obj['shortn'] = station.short
                     obj['name'] = station.name
                     obj['latitude'] = station.latitude
                     obj['longitude'] = station.longitude
