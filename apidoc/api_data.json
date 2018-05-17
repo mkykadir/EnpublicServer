@@ -77,7 +77,7 @@
       "examples": [
         {
           "title": "Success-Response:",
-          "content": "HTTP/1.1 200 OK\n[\n    [\n        {\n            \"name\": \"Station1\",\n            \"latitude\": 40.123,\n            \"longitude\": 20.123,\n            \"next\": {\n                \"code\": \"123K\",\n                \"color\": \"ffffff\"\n            }\n        },\n        {\n            \"name\": \"Station2\",\n            \"latitude\": 41.123,\n            \"longitude\": 21.123,\n            \"next\": null\n        }   \n    ]\n]",
+          "content": "HTTP/1.1 200 OK\n[\n    [\n        {\n            \"shortn\": \"STATI\",\n            \"name\": \"Station1\",\n            \"latitude\": 40.123,\n            \"longitude\": 20.123,\n            \"next\": {\n                \"code\": \"123K\",\n                \"color\": \"ffffff\"\n            }\n        },\n        {\n            \"shortn\": \"STATI2\",\n            \"name\": \"Station2\",\n            \"latitude\": 41.123,\n            \"longitude\": 21.123,\n            \"next\": null\n        }   \n    ]\n]",
           "type": "json"
         }
       ]
@@ -161,7 +161,7 @@
       "examples": [
         {
           "title": "Success-Response:",
-          "content": "HTTP/1.1 200 OK\n[\n    {\n        \"name\": \"Station1\",\n        \"latitude\": 40.123,\n        \"longitude\": 20.123\n    }\n]",
+          "content": "HTTP/1.1 200 OK\n[\n    {\n        \"shortn\": \"STATI\",\n        \"name\": \"Station1\",\n        \"latitude\": 40.123,\n        \"longitude\": 20.123\n    }\n]",
           "type": "json"
         }
       ]
@@ -231,7 +231,7 @@
       "examples": [
         {
           "title": "Success-Response:",
-          "content": "HTTP/1.1 200 OK\n[\n    {\n        \"name\": \"Station1\",\n        \"latitude\": 40.123,\n        \"longitude\": 20.123\n    }\n]",
+          "content": "HTTP/1.1 200 OK\n[\n    {\n        \"shortn\": \"STATI\",\n        \"name\": \"Station1\",\n        \"latitude\": 40.123,\n        \"longitude\": 20.123\n    }\n]",
           "type": "json"
         }
       ]
