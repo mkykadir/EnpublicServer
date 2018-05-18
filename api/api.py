@@ -256,6 +256,8 @@ def api_station():
             print(type(e))
             return jsonify({'message': str(e)}), 500
     else:
+        current_user.stats.searched += 1
+        current_user.save()
         try:
             stations = Station.nodes.filter(name__istartswith=name)
             ret_object = []
@@ -351,6 +353,8 @@ def api_station_directions():
         to_station.directed += 1
         from_station.save()
         to_station.save()
+        current_user.stats.directed += 1
+        current_user.save()
 
         query = "MATCH (src:Station {short:{src}}), (dest:Station {short:{dest}}), p=allShortestPaths((src)-[*]->(" \
                 "dest)) RETURN extract(n in nodes(p) | n.code) AS vehicle, extract(n in nodes(p) | n.short) AS " \
