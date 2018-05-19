@@ -18,14 +18,16 @@ def generate_file_name():
 
 
 def vehicles_csv_handler(file_link):
-    query = "LOAD CSV FROM {path} AS file" \
+    query = "USING PERIODIC COMMIT" \
+            " LOAD CSV FROM {path} AS file" \
             " CREATE (:Vehicle {code: file[0], color: file[1], description: file[2]})"
     params = {'path': file_link}
     neo_db.cypher_query(query=query, params=params)
 
 
 def stations_csv_handler(file_link):
-    query = "LOAD CSV FROM {path} AS file" \
+    query = "USING PERIODIC COMMIT" \
+            " LOAD CSV FROM {path} AS file" \
             " CREATE (n:Station {short:file[0], name:file[1], latitude:toFloat(file[2]), longitude:toFloat(file[3]), " \
             "directed:0, nearby:0, searched:0, visited:0}) WITH n CALL spatial.addNode('spati',n) YIELD node RETURN " \
             "'added'"
@@ -35,7 +37,8 @@ def stations_csv_handler(file_link):
 
 
 def relations_csv_handler(file_link):
-    query = "LOAD CSV FROM {path} AS file" \
+    query = "USING PERIODIC COMMIT" \
+            " LOAD CSV FROM {path} AS file" \
             " MATCH (a:Station {short: file[1]}), (b:Vehicle {code: file[0]})" \
             " CREATE (a)-[:FR {distance: toFloat(file[2])}]->(b)" \
             " CREATE (b)-[:TO {distance: 0.0}]->(a)"
