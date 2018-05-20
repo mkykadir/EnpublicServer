@@ -1,5 +1,9 @@
-from neomodel import StructuredNode, StructuredRel, StringProperty, FloatProperty, RelationshipTo, RelationshipFrom, \
+from neomodel import StructuredNode, StructuredRel, StringProperty, FloatProperty, RelationshipTo, Relationship, \
     IntegerProperty
+
+
+class Walk(StructuredRel):
+    distance = FloatProperty(default=4)
 
 
 class FrTo(StructuredRel):
@@ -25,6 +29,7 @@ class Station(StructuredNode):
     visited = IntegerProperty(default=0)
 
     fr = RelationshipTo('Vehicle', 'FR', model=FrTo)
+    walk = Relationship('Station', 'WALK', model=Walk)
 
 
 class Activity:

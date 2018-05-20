@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_security import http_auth_required, current_user
 from extensions import user_datastore, neo_db, Achievement, User
 from models import Station, Vehicle
+import utils
 
 api = Blueprint('api', 'api', url_prefix='/api')
 
@@ -236,7 +237,7 @@ def api_station():
             distance = request.args.get('dist')
 
             if distance is None:
-                distance = 0.05
+                distance = 0.005
             else:
                 distance = float(distance)
 
@@ -344,58 +345,12 @@ def api_station_directions():
     from_name = request.args.get('from')
     to_name = request.args.get('to')
 
-    try:
-        ret_object = []
+    from_station = Station.nodes.filter(short__iexact=from_name)[0]
+    to_station = Station.nodes.filter(short__iexact=to_name)[0]
 
-        from_station = Station.nodes.filter(short__iexact=from_name)[0]
-        to_station = Station.nodes.filter(short__iexact=to_name)[0]
-        from_station.directed += 1
-        to_station.directed += 1
-        from_station.save()
-        to_station.save()
-        current_user.stats.directed += 1
-        current_user.save()
+    current_user.stats.directed += 1
+    current_user.save()
 
-        query = "MATCH (src:Station {short:{src}}), (dest:Station {short:{dest}}), p=allShortestPaths((src)-[*]->(" \
-                "dest)) RETURN extract(n in nodes(p) | n.code) AS vehicle, extract(n in nodes(p) | n.short) AS " \
-                "station, reduce(traveltime = 0, r in relationships(p) | traveltime + r.distance) AS totalTime ORDER " \
-                "BY totalTime ASC LIMIT 3 "
+    result = utils.get_directions(from_station, to_station)
 
-        graph = neo_db.cypher_query(query=query, params={'src': from_station.short, 'dest': to_station.short})
-
-        for result in graph[0]:
-            result_obj = []
-            vehicles = result[0]
-            stations = result[1]
-
-            iterator = 0
-
-            while iterator < len(stations):
-                obj = {}
-                station_code = stations[iterator]
-                if station_code is not None:
-                    station = Station.nodes.get(short=station_code)
-                    obj['shortn'] = station.short
-                    obj['name'] = station.name
-                    obj['latitude'] = station.latitude
-                    obj['longitude'] = station.longitude
-                    if iterator+1 < len(vehicles):
-                        vehicle_code = vehicles[iterator+1]
-                        if vehicle_code is not None:
-                            vehicle = Vehicle.nodes.get(code=vehicle_code)
-                            obj['next'] = {'code': vehicle.code, 'color': vehicle.color}
-                        else:
-                            obj['next'] = None
-                    else:
-                        obj['next'] = None
-
-                    result_obj.append(obj)
-
-                iterator += 1
-
-            ret_object.append(result_obj)
-
-        return jsonify(ret_object)
-    except Exception as e:
-        print(type(e))
-        return jsonify({'message': str(e)}), 500
+    return jsonify(result)
