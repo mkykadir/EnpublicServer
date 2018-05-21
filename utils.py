@@ -26,15 +26,17 @@ def vehicles_csv_handler(file_link):
 
 
 def stations_csv_handler(file_link):
-    query = "USING PERIODIC COMMIT" \
-            " LOAD CSV FROM {path} AS file" \
-            " CREATE (n:Station {short:file[0], name:file[1], latitude:toFloat(file[2]), longitude:toFloat(file[3]), " \
-            "directed:0, nearby:0, searched:0, visited:0}) WITH n CALL spatial.addNode('spati',n) YIELD node RETURN " \
-            "'added'"
+    query = "USING PERIODIC COMMIT LOAD CSV FROM 'http://web.itu.edu.tr/yucelmuh/enpublic/stations.csv' AS " \
+            "file WITH file CREATE (n:Station {short:file[0], name:file[1], latitude:toFloat(file[2]), " \
+            "longitude:toFloat(file[3]), directed:0, nearby:0, searched:0, visited:0}) WITH n CALL spatial.addNode(" \
+            "'spati',n) YIELD node WITH n CALL spatial.closest('spati', {latitude:n.latitude, longitude:n.longitude}, " \
+            "0.005) YIELD node AS nd WITH n,nd CREATE (n)-[:WALK {distance: 4}]->(nd) CREATE (nd)-[:WALK {distance: " \
+            "4}]->(n) "
 
     params = {'path': file_link}
     neo_db.cypher_query(query=query, params=params)
-    merge_walking()
+    delete_self_walk = "MATCH (n:Station)-[r:WALK]->(m:Station) WHERE n.short = m.short DELETE r"
+    neo_db.cypher_query(query=delete_self_walk)
 
 
 def relations_csv_handler(file_link):
@@ -84,7 +86,7 @@ def get_directions(fr, to):
         query = "MATCH (src:Station {short:{src}}), (dest:Station {short:{dest}}), p=allShortestPaths((src)-[*]->(" \
                 "dest)) RETURN extract(n in nodes(p) | n.code) AS vehicle, extract(n in nodes(p) | n.short) AS " \
                 "station, reduce(traveltime = 0, r in relationships(p) | traveltime + r.distance) AS totalTime ORDER " \
-                "BY totalTime ASC LIMIT 3 "
+                "BY totalTime ASC LIMIT 5"
 
         graph = neo_db.cypher_query(query=query, params={'src': fr.short, 'dest': to.short})
 
@@ -164,3 +166,5 @@ def merge_walking():
             near_station = Station.nodes.filter(short__iexact=nearby['shortn'])[0]
             if not station.walk.is_connected(near_station):
                 station.walk.connect(near_station)
+            if not near_station.walk.is_connected(station):
+                near_station.walk.connect(station)

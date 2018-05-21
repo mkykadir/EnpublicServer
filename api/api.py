@@ -283,7 +283,6 @@ def api_station():
 @apiSuccess {String} color HEX color code of vehicle
 """
 
-
 """
 @apiDefine directObject
 @apiSuccess {String} name Name of the station
