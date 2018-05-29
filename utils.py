@@ -1,6 +1,7 @@
 import uuid
-from extensions import neo_db, user_datastore, Achievement
+from extensions import neo_db, user_datastore, Achievement, User
 from models import Station, Vehicle
+import operator
 
 
 def file_name_check(file_name):
@@ -69,9 +70,10 @@ def create_neo_db():
 
 
 def create_achievements():
-    Achievement(name='long_distance', description='You took very long ways with public transportation!', required=50, stats_id='distance').save()
+    # Achievement(name='long_distance', description='You took very long ways with public transportation!', required=50, stats_id='distance').save()
     Achievement(name='directed_a_lot', description='Using Enpublic to find your way, best way!', required=100, stats_id='directed').save()
     Achievement(name='searched_a_lot', description='Learning never finishes even in public transportation...', required=100, stats_id='searched').save()
+    Achievement(name='vehicles_a_lot', description='Used a lot of vehicles, you can now rate all of their comfort.', required=10, stats_id='vehicles').save()
 
 
 def get_directions(fr, to):
@@ -130,12 +132,12 @@ def get_directions(fr, to):
 
 def get_nearby_stations(lat, lon):
     ret_object = []
-    query = "CALL spatial.closest('spati', {latitude: {lat}, longitude: {lon}}, {dist}) YIELD node AS result SET " \
-            "result.nearby=result.nearby+1 RETURN result.name AS name, result.latitude AS latitude, " \
-            "result.longitude AS longitude, result.short AS shortn "
+    query = "CALL spatial.closest('spati', {latitude: {lat}, longitude: {lon}}, {dist}) YIELD node AS result " \
+            "RETURN result.name AS name, result.latitude AS latitude, " \
+            "result.longitude AS longitude, result.short AS shortn LIMIT 1"
 
     try:
-        stations = neo_db.cypher_query(query=query, params={'lat': lat, 'lon': lon, 'dist': 0.005})
+        stations = neo_db.cypher_query(query=query, params={'lat': lat, 'lon': lon, 'dist': 0.05})
         stations = stations[0]
         for station in stations:
             if station[1] == lat and station[2] == lon:
@@ -155,6 +157,27 @@ def get_nearby_stations(lat, lon):
         return {'message': str(e)}
 
 
+def get_user_achievements(current_user):
+    stats = current_user['stats']
+
+    for achievement in Achievement.objects:
+        if stats[achievement['stats_id']] >= achievement['required'] \
+                and achievement.id not in current_user['achieved']:
+            current_user.update(add_to_set__achieved=achievement)
+
+    # current_user.save()
+    user = User.objects(id=current_user.id).first()
+    ret_object = []
+    for achievement in user['achieved']:
+        achieved = {
+            "name": achievement.name,
+            "description": achievement.description
+        }
+        ret_object.append(achieved)
+
+    return ret_object
+
+
 def merge_walking():
     # todo: do that for only added stations to reduce time!
     # todo: double sided relation for walking may be required
@@ -168,3 +191,10 @@ def merge_walking():
                 station.walk.connect(near_station)
             if not near_station.walk.is_connected(station):
                 near_station.walk.connect(station)
+
+
+def activity_handler(activities, current_user):
+    for activity in activities:
+        activity.locations.sort(key=operator.attrgetter('timestamp'))
+
+

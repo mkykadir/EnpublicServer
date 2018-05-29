@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_security import http_auth_required, current_user
 from extensions import user_datastore, neo_db, Achievement, User
-from models import Station, Vehicle
+from models import Station, Vehicle, Transition, Activity, Location
 import utils
 
 api = Blueprint('api', 'api', url_prefix='/api')
@@ -101,7 +101,35 @@ def api_profile():
     return jsonify(profile_info)
 
 
-# TODO user_activities
+@api.route('/profile/activity', methods=['POST'])
+@http_auth_required
+def api_user_activities():
+    data = request.get_json()
+
+    try:
+        transitions = data["transitions"]
+        locations = data["locations"]
+
+        transitions_array = []
+        locations_array = []
+        for transition in transitions:
+            transitions_array.append(Transition(transition["activityType"], transition["transitionType"],
+                                                transition["timestamp"]))
+
+        for location in locations:
+            locations_array.append(Location(location["latitude"], location["longitude"], location["timestamp"],
+                                            location["speed"], location["accuracy"]))
+
+        activities = Activity.transitions_to_activity(transitions_array)
+        merged_activities = Activity.merge_nears(activities)
+        located_activities = Activity.add_locations(merged_activities, locations_array)
+        utils.activity_handler(located_activities, current_user)
+        ret_object = utils.get_user_achievements(current_user)
+        return jsonify(ret_object)
+    except Exception as e:
+        print(type(e))
+        print(e)
+        return jsonify({"message": e})
 
 
 """
@@ -137,23 +165,7 @@ def api_profile():
 @api.route('/achievement', methods=['GET'])
 @http_auth_required
 def api_user_achievements():
-    stats = current_user['stats']
-
-    for achievement in Achievement.objects:
-        if stats[achievement['stats_id']] >= achievement['required']\
-                and achievement.id not in current_user['achieved']:
-            current_user.update(add_to_set__achieved=achievement)
-
-    # current_user.save()
-    user = User.objects(id=current_user.id).first()
-    ret_object = []
-    for achievement in user['achieved']:
-        achieved = {
-            "name": achievement.name,
-            "description": achievement.description
-        }
-        ret_object.append(achieved)
-
+    ret_object = utils.get_user_achievements(current_user)
     return jsonify(ret_object)
 
 
