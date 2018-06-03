@@ -13,6 +13,8 @@ class Stats(user_db.EmbeddedDocument):
     searched = user_db.IntField(default=0)
     directed = user_db.IntField(default=0)
     vehicles = user_db.IntField(default=0)
+    walked = user_db.IntField(default=0)
+    vehicled = user_db.IntField(default=0)
 
 
 class Achievement(user_db.Document):

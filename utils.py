@@ -70,10 +70,13 @@ def create_neo_db():
 
 
 def create_achievements():
-    # Achievement(name='long_distance', description='You took very long ways with public transportation!', required=50, stats_id='distance').save()
-    Achievement(name='directed_a_lot', description='Using Enpublic to find your way, best way!', required=100, stats_id='directed').save()
-    Achievement(name='searched_a_lot', description='Learning never finishes even in public transportation...', required=100, stats_id='searched').save()
+    Achievement(name='directed_a_lot', description='Using Enpublic to find your way, best way!', required=10, stats_id='directed').save()
+    Achievement(name='searched_a_lot', description='Learning never finishes even in public transportation...', required=10, stats_id='searched').save()
     Achievement(name='vehicles_a_lot', description='Used a lot of vehicles, you can now rate all of their comfort.', required=10, stats_id='vehicles').save()
+    Achievement(name='walked_a_lot', description='You are walking a lot, you may want to try public transportation more!',
+                required=10, stats_id='walked').save()
+    Achievement(name='vehicled_a_lot', description='Your usage of vehicles is amazing! Keep going...',
+                required=10, stats_id='vehicled').save()
 
 
 def get_directions(fr, to):
@@ -197,4 +200,18 @@ def activity_handler(activities, current_user):
     for activity in activities:
         activity.locations.sort(key=operator.attrgetter('timestamp'))
 
+        stations = []
 
+        for location in activity.locations:
+            nearby = get_nearby_stations(location.latitude, location.longitude)[0]
+            stations.append(nearby['shortn'])
+
+        stations = list(set(stations))
+        print(stations)  # DEBUG
+
+        if activity.type == 7:  # walking
+            current_user.stats.walked += len(stations)
+        elif activity.type == 8:  # on vehicle
+            current_user.stats.vehicled += len(stations)
+
+        current_user.save()
