@@ -129,7 +129,7 @@ def api_user_activities():
     except Exception as e:
         print(type(e))
         print(e)
-        return jsonify({"message": e})
+        return jsonify({"message": str(e)}), 500
 
 
 """

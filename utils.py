@@ -209,9 +209,15 @@ def activity_handler(activities, current_user):
         stations = list(set(stations))
         print(stations)  # DEBUG
 
-        if activity.type == 7:  # walking
+        if activity.type == 2 or activity.type == 7 or activity.type == 8:  # walking
             current_user.stats.walked += len(stations)
-        elif activity.type == 8:  # on vehicle
-            current_user.stats.vehicled += len(stations)
+        elif activity.type == 0:  # on vehicle
+            if len(stations) >= 2:
+                from_station = Station.nodes.filter(short__iexact=stations[0])[0]
+                to_station = Station.nodes.filter(short__iexact=stations[len(stations)-1])[0]
+                result = get_directions(from_station, to_station)
+                if len(result) > 0:
+                    current_user.stats.vehicles += len(result[0]) - 1
+                    current_user.stats.vehicled += len(stations)
 
         current_user.save()

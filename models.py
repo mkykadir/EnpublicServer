@@ -45,15 +45,23 @@ class Activity:
 
     @staticmethod
     def add_locations(activities, locations):
-        result = activities
-
-        for activity in result:
+        result = []
+        res_locations = locations
+        for activity in activities:
             start_time = activity.start_time
             end_time = activity.end_time
+            a_locations = []
 
-            for location in locations:
+            for location in res_locations:
                 if location.within_time(start_time, end_time):
-                    activity.locations.append(location)
+                    a_locations.append(location)
+
+            if len(a_locations) > 0:
+                activity.locations = a_locations
+                result.append(activity)
+                locations_set = set(res_locations)
+                activity_locations_set = set(activity.locations)
+                res_locations = list(locations_set.difference(activity_locations_set))
 
         return result
 
