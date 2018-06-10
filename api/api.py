@@ -101,6 +101,41 @@ def api_profile():
     return jsonify(profile_info)
 
 
+"""
+@apiDefine achievementObject
+@apiSuccess {String} name Identifier of achievement object
+@apiSuccess {String} description Description message of achievement
+"""
+
+
+"""
+@api {post} /profile/activity Activity data of users
+@apiName UserActivity
+@apiGroup User
+@apiPermission user
+@apiDescription Send activity information of user and get gained achievements from this activity.
+@apiVersion 1.0.0
+@apiHeader {String} authorization BasicAuth value of email and password of user
+@apiHeaderExample {String} BasicAuth-Example
+    Basic YWRkcmVzc0BtYWlsLmNvbToxMjM=
+@apiParamExample {json} Example parameters to send:
+    {
+        "locations": [...],
+        "transitions": [...]
+    }
+@apiUse achievementObject
+@apiSuccess {achievementObject[]}   List of achievements
+@apiSuccessExample {json} Success-Response:
+    HTTP/1.1 200 OK
+    [
+        {
+            "name": "achievementid",
+            "description": "Best achievement ever!"
+        }
+    ]
+"""
+
+
 @api.route('/profile/activity', methods=['POST'])
 @http_auth_required
 def api_user_activities():
@@ -132,13 +167,6 @@ def api_user_activities():
         print(type(e))
         print(e)
         return jsonify({"message": str(e)}), 500
-
-
-"""
-@apiDefine achievementObject
-@apiSuccess {String} name Identifier of achievement object
-@apiSuccess {String} description Description message of achievement
-"""
 
 
 """

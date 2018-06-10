@@ -422,6 +422,87 @@
     "groupTitle": "User"
   },
   {
+    "type": "post",
+    "url": "/profile/activity",
+    "title": "Activity data of users",
+    "name": "UserActivity",
+    "group": "User",
+    "permission": [
+      {
+        "name": "user",
+        "title": "User Permission",
+        "description": "<p>This call requires normal user permissions</p>"
+      }
+    ],
+    "description": "<p>Send activity information of user and get gained achievements from this activity.</p>",
+    "version": "1.0.0",
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "String",
+            "optional": false,
+            "field": "authorization",
+            "description": "<p>BasicAuth value of email and password of user</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "BasicAuth-Example",
+          "content": "Basic YWRkcmVzc0BtYWlsLmNvbToxMjM=",
+          "type": "String"
+        }
+      ]
+    },
+    "parameter": {
+      "examples": [
+        {
+          "title": "Example parameters to send:",
+          "content": "{\n    \"locations\": [...],\n    \"transitions\": [...]\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "achievementObject[]",
+            "optional": false,
+            "field": "List",
+            "description": "<p>of achievements</p>"
+          },
+          {
+            "group": "Success 200",
+            "type": "String",
+            "optional": false,
+            "field": "name",
+            "description": "<p>Identifier of achievement object</p>"
+          },
+          {
+            "group": "Success 200",
+            "type": "String",
+            "optional": false,
+            "field": "description",
+            "description": "<p>Description message of achievement</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Success-Response:",
+          "content": "HTTP/1.1 200 OK\n[\n    {\n        \"name\": \"achievementid\",\n        \"description\": \"Best achievement ever!\"\n    }\n]",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "./api/api.py",
+    "groupTitle": "User"
+  },
+  {
     "type": "get",
     "url": "/profile",
     "title": "Profile Information of Logged in User",
