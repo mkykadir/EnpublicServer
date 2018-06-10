@@ -107,6 +107,7 @@ def api_user_activities():
     data = request.get_json()
 
     try:
+        old_achievements = utils.get_user_achievements(current_user)
         transitions = data["transitions"]
         locations = data["locations"]
 
@@ -124,7 +125,8 @@ def api_user_activities():
         merged_activities = Activity.merge_nears(activities)
         located_activities = Activity.add_locations(merged_activities, locations_array)
         utils.activity_handler(located_activities, current_user)
-        ret_object = utils.get_user_achievements(current_user)
+        new_achievements = utils.get_user_achievements(current_user)
+        ret_object = list(set(new_achievements).difference(set(old_achievements)))
         return jsonify(ret_object)
     except Exception as e:
         print(type(e))

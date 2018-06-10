@@ -72,10 +72,11 @@ class Activity:
         while i < len(transitions):
             starting = transitions[i]
             if starting.transition_type == 0:
-                ending = transitions[i+1]
-                if ending.transition_type == 1:
-                    if starting.activity_type == ending.activity_type:
-                        result.append(Activity(starting.activity_type, starting.timestamp, ending.timestamp))
+                if i != len(transitions) - 1:
+                    ending = transitions[i+1]
+                    if ending.transition_type == 1:
+                        if starting.activity_type == ending.activity_type:
+                            result.append(Activity(starting.activity_type, starting.timestamp, ending.timestamp))
 
             i = i+2
 
